@@ -5,10 +5,10 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bluetooth, Search, WifiOff, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
-import { Progress } from "@/components/ui/progress";
+import { RadarAnimation } from '@/components/rescuer/radar-animation'; // Import the new radar animation
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type {DetectedSignal as BaseDetectedSignal} from '@/types/signals'; // Assuming types are defined
+import type {DetectedSignal as BaseDetectedSignal} from '@/types/signals';
 
 
 interface DetectedSignal extends BaseDetectedSignal {
@@ -35,7 +35,7 @@ interface SOSScannerPanelProps {
 export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetectedSignals }: SOSScannerPanelProps) {
   const [status, setStatus] = useState<ScanStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [scanProgress, setScanProgress] = useState(0);
+  // const [scanProgress, setScanProgress] = useState(0); // Kept for potential future use, but radar replaces visual progress
   const { toast } = useToast();
 
   const parseSignalName = (name: string): { lat: number | undefined, lon: number | undefined } => {
@@ -55,9 +55,9 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
   const startScan = async () => {
     setStatus("scanning");
     setError(null);
-    setDetectedSignals([]); // Clear previous signals from local state
-    onSignalsDetected([]); // Notify parent
-    setScanProgress(0);
+    setDetectedSignals([]); 
+    onSignalsDetected([]); 
+    // setScanProgress(0);
 
     if (!navigator.bluetooth) {
       setStatus("unsupported");
@@ -68,41 +68,53 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
 
     toast({ title: "Scanning Started", description: "Looking for SOS signals... (Simulated)" });
 
-    const totalScanTime = 5000;
-    const intervalTime = 100;
-    let currentTime = 0;
+    // Simulate scan duration
+    const totalScanTime = 5000; 
+    // let currentTime = 0;
+    // const intervalTime = 100;
 
-    const intervalId = setInterval(() => {
-      currentTime += intervalTime;
-      setScanProgress((currentTime / totalScanTime) * 100);
-      if (currentTime >= totalScanTime) {
-        clearInterval(intervalId);
-        finishScan([]); // Pass empty array if no devices found during timeout
+
+    // const intervalId = setInterval(() => {
+    //   currentTime += intervalTime;
+    //   setScanProgress((currentTime / totalScanTime) * 100);
+    //   if (currentTime >= totalScanTime) {
+    //     clearInterval(intervalId);
+    //     // finishScan([]); // Pass empty array if no devices found during timeout - handled by main timeout
+    //   }
+    // }, intervalTime);
+
+    // Simulate finding devices after some time, or timeout
+    const scanTimeoutId = setTimeout(() => {
+      // clearInterval(intervalId); // Stop progress if it was running
+
+      // Decide if signals are found or not for simulation
+      if (Math.random() > 0.3) { // 70% chance to find signals
+        const newSignalsRaw: Omit<DetectedSignal, 'status'>[] = [
+          { id: "device1", name: "SOS_34.0522_-118.2437", rssi: -55, ...parseSignalName("SOS_34.0522_-118.2437"), timestamp: Date.now() },
+          { id: "device2", name: "SOS_34.0580_-118.2500", rssi: -70, ...parseSignalName("SOS_34.0580_-118.2500"), timestamp: Date.now() },
+          { id: "device3", name: "Generic Bluetooth Device", rssi: -85, timestamp: Date.now() },
+        ];
+        const filteredSignals = newSignalsRaw
+          .filter(s => s.name.startsWith("SOS_"))
+          .map(s => ({ ...s, status: "Pending" }));
+        finishScan(filteredSignals);
+      } else {
+        finishScan([]); // No signals found
       }
-    }, intervalTime);
+    }, totalScanTime);
 
-    // Simulate finding devices
-    setTimeout(() => {
-      const newSignalsRaw: Omit<DetectedSignal, 'status'>[] = [
-        { id: "device1", name: "SOS_34.0522_-118.2437", rssi: -55, ...parseSignalName("SOS_34.0522_-118.2437"), timestamp: Date.now() },
-        { id: "device2", name: "SOS_34.0580_-118.2500", rssi: -70, ...parseSignalName("SOS_34.0580_-118.2500"), timestamp: Date.now() },
-        { id: "device3", name: "Generic Bluetooth Device", rssi: -85, timestamp: Date.now() },
-      ];
-      const filteredSignals = newSignalsRaw
-        .filter(s => s.name.startsWith("SOS_"))
-        .map(s => ({ ...s, status: "Pending" })); // Add default status
-      
-      clearInterval(intervalId); // Stop progress interval as we found devices
-      finishScan(filteredSignals);
-    }, 2500);
+    // It's good practice to clear timeouts if the component unmounts or scan is restarted
+    // This would typically be in a useEffect cleanup, but for simplicity here,
+    // if startScan could be called multiple times rapidly, old timeouts should be cleared.
+    // However, the button is disabled during scan, so this is less of an issue.
   };
 
   const finishScan = (foundSignals: DetectedSignal[]) => {
     setStatus("idle");
-    setScanProgress(100);
+    // setScanProgress(100);
     setDetectedSignals(foundSignals);
     onSignalsDetected(foundSignals);
-    setTimeout(() => setScanProgress(0), 1000);
+    // setTimeout(() => setScanProgress(0), 1000);
 
     if (foundSignals.length === 0 && status !== "error" && status !== "unsupported") {
          toast({ title: "Scan Complete", description: "No SOS signals detected in this simulated scan." });
@@ -116,7 +128,7 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
       signal.id === signalId ? { ...signal, status: newStatus } : signal
     );
     setDetectedSignals(updatedSignals);
-    onSignalsDetected(updatedSignals); // Notify parent if it needs the full updated list
+    onSignalsDetected(updatedSignals); 
   };
 
 
@@ -154,7 +166,7 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
           {status === "scanning" ? "Scanning..." : "Start New Scan"}
         </Button>
 
-        {status === "scanning" && <Progress value={scanProgress} className="mb-4 h-2" />}
+        {status === "scanning" && <RadarAnimation />}
         
         {status === "unsupported" && (
           <div className="text-destructive flex items-center gap-2 p-4 bg-destructive/10 rounded-md">
@@ -208,7 +220,7 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
             ))}
           </ul>
         ) : (
-          status !== "scanning" && status !== "unsupported" && (!error || status === "error") && (
+          status === "idle" && !error && ( // Show this only when idle and no errors
             <p className="text-muted-foreground text-center py-4">No SOS signals detected yet. Start a scan.</p>
           )
         )}
@@ -216,8 +228,3 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
     </Card>
   );
 }
-
-// Ensure AlertTriangleIcon is defined if not imported or used locally
-// const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => (
-//   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-// );
