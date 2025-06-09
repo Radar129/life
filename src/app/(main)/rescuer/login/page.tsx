@@ -49,18 +49,18 @@ export default function RescuerLoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-10rem-4rem)] py-12">
+    <div className="flex items-center justify-center min-h-[calc(100vh-8rem-3.5rem)] py-8 sm:py-12"> {/* Adjusted min-h and py */}
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl mb-2">Rescuer Team Login</CardTitle>
-          <CardDescription>
+          <CardTitle className="font-headline text-2xl sm:text-3xl mb-2">Rescuer Team Login</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
             Enter the Master Key to access the Rescuer Dashboard.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-6 p-6">
+          <CardContent className="space-y-6 p-4 sm:p-6">
             <div className="space-y-2">
-              <Label htmlFor="masterKey" className="text-base">Master Key</Label>
+              <Label htmlFor="masterKey" className="text-sm sm:text-base">Master Key</Label>
               <Input
                 id="masterKey"
                 type="password"
@@ -68,26 +68,26 @@ export default function RescuerLoginPage() {
                 value={masterKey}
                 onChange={(e) => setMasterKey(e.target.value)}
                 disabled={isLoading}
-                className="text-lg"
+                className="text-base sm:text-lg"
               />
             </div>
             {error && (
-              <div className="flex items-center text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                <AlertTriangle className="w-5 h-5 mr-2" />
+              <div className="flex items-center text-xs sm:text-sm text-destructive bg-destructive/10 p-2 sm:p-3 rounded-md">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 {error}
               </div>
             )}
           </CardContent>
-          <CardFooter className="p-6 border-t">
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-lg py-6" disabled={isLoading}>
+          <CardFooter className="p-4 sm:p-6 border-t">
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-base sm:text-lg py-3 sm:py-6" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:h-5 animate-spin" />
                   Verifying...
                 </>
               ) : (
                 <>
-                  <LogIn className="mr-2 h-5 w-5" />
+                  <LogIn className="mr-2 h-4 w-4 sm:h-5 sm:h-5" />
                   Access Dashboard
                 </>
               )}

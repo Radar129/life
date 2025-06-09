@@ -51,32 +51,30 @@ export default function RescuerPage() {
   };
 
   if (!isAuthenticated) {
-    // Render minimal content or a loader while checking auth, or nothing if redirecting.
-    // This avoids flashing the page content before redirect.
     return <div className="flex justify-center items-center h-screen"><p>Loading...</p></div>;
   }
 
 
   return (
-    <div className="container mx-auto py-8">
-      <header className="mb-8 flex flex-col sm:flex-row justify-between items-center">
-        <div className="text-center sm:text-left mb-4 sm:mb-0">
-            <h1 className="text-4xl font-headline font-bold text-primary">Rescuer Dashboard</h1>
-            <p className="text-lg text-muted-foreground mt-2">
+    <div className="container mx-auto py-6 sm:py-8">
+      <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="text-center sm:text-left">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-headline font-bold text-primary">Rescuer Dashboard</h1>
+            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground mt-1 sm:mt-2">
             Access tools to locate victims and receive operational advice.
             </p>
         </div>
-        <Button variant="outline" onClick={handleLogout}>
+        <Button variant="outline" onClick={handleLogout} size="sm" className="w-full sm:w-auto">
           <LogOut className="mr-2 h-4 w-4" /> Logout
         </Button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <div className="space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-start">
+        <div className="space-y-6 sm:space-y-8">
           <SOSScannerPanel onSignalsDetected={handleSignalsDetected} detectedSignals={detectedSignals} setDetectedSignals={setDetectedSignals}/>
           <MapDisplayPanel signals={detectedSignals} />
         </div>
-        <div className="lg:sticky lg:top-24">
+        <div className="lg:sticky lg:top-[calc(4rem+1.5rem)]"> {/* Adjust top based on new header height (4rem) + some padding (1.5rem for py-6 of main) */}
           <RescuerAdvicePanel />
         </div>
       </div>

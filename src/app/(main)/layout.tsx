@@ -1,3 +1,4 @@
+
 import { AppHeader } from '@/components/layout/app-header';
 
 export default function MainAppLayout({
@@ -8,10 +9,10 @@ export default function MainAppLayout({
   return (
     <div className="flex flex-col min-h-screen">
       <AppHeader />
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-2 sm:px-4 py-8">
         {children}
       </main>
-      <footer className="py-6 text-center text-sm text-muted-foreground border-t">
+      <footer className="py-6 text-center text-xs sm:text-sm text-muted-foreground border-t">
         Life Emergency Response Assistant &copy; {new Date().getFullYear()}
       </footer>
     </div>
