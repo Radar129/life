@@ -32,7 +32,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
         },
         () => {
           console.warn("Could not get rescuer location. Using default.");
-          setRescuerLocation({ lat: 34.0500, lon: -118.2500 }); 
+          setRescuerLocation({ lat: 34.0500, lon: -118.2500 });
         }
       );
     } else {
@@ -65,15 +65,15 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
       </CardHeader>
       <CardContent>
         <div className="relative aspect-video bg-muted rounded-md overflow-hidden border">
-          <Image 
-            src="https://placehold.co/800x450.png" 
-            alt="Map placeholder showing SOS signal locations" 
+          <Image
+            src="https://placehold.co/800x450.png"
+            alt="Map placeholder showing SOS signal locations"
             layout="fill"
             objectFit="cover"
             data-ai-hint="map rescue"
           />
           {rescuerLocation && (
-            <div 
+            <div
               className="absolute flex flex-col items-center text-blue-600"
               style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
               title={`Your Location: LAT ${rescuerLocation.lat}, LON ${rescuerLocation.lon}`}
@@ -84,19 +84,27 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
           )}
           {signals.map((signal, index) => {
             if (signal.lat && signal.lon) {
-              const xOffset = (index % 3) * 20 - 20; 
+              const xOffset = (index % 3) * 20 - 20;
               const yOffset = Math.floor(index / 3) * 20 - 20;
               return (
-                 <div 
-                  key={signal.id} 
-                  className="absolute flex flex-col items-center text-red-500 cursor-pointer hover:opacity-80 transition-opacity"
-                  style={{ 
-                    top: `${40 + yOffset}%`, 
+                 <div
+                  key={signal.id}
+                  role="button"
+                  tabIndex={0}
+                  className="absolute flex flex-col items-center text-red-500 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                  style={{
+                    top: `${40 + yOffset}%`,
                     left: `${30 + xOffset}%`,
-                    transform: 'translate(-50%, -50%)' 
+                    transform: 'translate(-50%, -50%)'
                   }}
                   title={`Victim: ${signal.name} (LAT ${signal.lat}, LON ${signal.lon}) - Click for directions`}
                   onClick={() => openGoogleMapsDirections(signal.lat!, signal.lon!)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault(); // Prevent page scroll if space is pressed
+                      openGoogleMapsDirections(signal.lat!, signal.lon!);
+                    }
+                  }}
                 >
                   <MapPin className="w-6 h-6 fill-red-500" />
                   <span className="text-xs bg-white/70 px-1 rounded">SOS</span>
@@ -121,9 +129,9 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
                   <span className="text-xs">LAT {s.lat}, LON {s.lon}</span>
                 </div>
                 {rescuerLocation && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => openGoogleMapsDirections(s.lat!, s.lon!)}
                     className="ml-2"
                   >
