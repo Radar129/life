@@ -19,7 +19,7 @@ interface DetectedSignal extends BaseDetectedSignal {
 type ScanStatus = "idle" | "scanning" | "error" | "unsupported";
 
 const ListItemWrapper = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <li className={`p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${className}`}>{children}</li>
+  <li className={`p-2 sm:p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${className}`}>{children}</li>
 );
 
 const VICTIM_STATUSES = ["Pending", "Located", "Assistance In Progress", "Rescued", "No Response"];
@@ -133,9 +133,9 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
 
 
   const getSignalStrengthIcon = (rssi: number) => {
-    if (rssi > -60) return <SignalHigh className="w-5 h-5 text-green-500" />;
-    if (rssi > -75) return <SignalMedium className="w-5 h-5 text-yellow-500" />;
-    return <SignalLow className="w-5 h-5 text-red-500" />;
+    if (rssi > -60) return <SignalHigh className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />;
+    if (rssi > -75) return <SignalMedium className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />;
+    return <SignalLow className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />;
   };
 
   const getProximityText = (rssi: number) => {
@@ -148,16 +148,16 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl flex items-center gap-2">
-          <Bluetooth className="w-6 h-6 text-primary" />
+        <CardTitle className="font-headline text-xl flex items-center gap-2">
+          <Bluetooth className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           SOS Signal Scanner
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm">
           Scan for nearby SOS signals broadcast by victims. (This is a simulation)
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button onClick={startScan} disabled={status === "scanning"} className="w-full sm:w-auto mb-6 bg-primary hover:bg-primary/90">
+        <Button onClick={startScan} disabled={status === "scanning"} className="w-full sm:w-auto mb-4 sm:mb-6 bg-primary hover:bg-primary/90 text-sm">
           {status === "scanning" ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -169,41 +169,41 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
         {status === "scanning" && <RadarAnimation />}
         
         {status === "unsupported" && (
-          <div className="text-destructive flex items-center gap-2 p-4 bg-destructive/10 rounded-md">
-            <WifiOff className="w-6 h-6" /> 
+          <div className="text-destructive text-sm flex items-center gap-2 p-3 sm:p-4 bg-destructive/10 rounded-md">
+            <WifiOff className="w-5 h-5 sm:w-6 sm:h-6" /> 
             <p>{error || "Web Bluetooth API not available."}</p>
           </div>
         )}
         {status === "error" && error && (
-          <div className="text-destructive flex items-center gap-2 p-4 bg-destructive/10 rounded-md">
-            <AlertTriangleIcon className="w-6 h-6" /> 
+          <div className="text-destructive text-sm flex items-center gap-2 p-3 sm:p-4 bg-destructive/10 rounded-md">
+            <AlertTriangleIcon className="w-5 h-5 sm:w-6 sm:h-6" /> 
             <p>{error}</p>
           </div>
         )}
 
         {detectedSignals.length > 0 ? (
-          <ul className="space-y-1 border rounded-md max-h-72 overflow-y-auto">
+          <ul className="space-y-0.5 border rounded-md max-h-60 sm:max-h-72 overflow-y-auto">
             {detectedSignals.map((signal) => (
               <ListItemWrapper key={signal.id}>
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2 sm:gap-3">
                   <div className="flex-grow">
-                    <p className="font-semibold text-foreground">{signal.name}</p>
+                    <p className="font-semibold text-sm text-foreground">{signal.name}</p>
                     {signal.lat && signal.lon && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <MapPin className="w-3 h-3" /> LAT: {signal.lat}, LON: {signal.lon}
                       </p>
                     )}
-                     <div className="flex items-center gap-2 text-xs mt-1">
+                     <div className="flex items-center gap-1.5 text-xs mt-0.5">
                         {getSignalStrengthIcon(signal.rssi)}
                         <span>{getProximityText(signal.rssi)} (RSSI: {signal.rssi} dBm)</span>
                       </div>
                   </div>
-                  <div className="sm:w-48 flex-shrink-0">
+                  <div className="w-full sm:w-40 flex-shrink-0 mt-1 sm:mt-0">
                     <Select
                       value={signal.status || "Pending"}
                       onValueChange={(value) => handleStatusChange(signal.id, value)}
                     >
-                      <SelectTrigger className="w-full text-xs h-9">
+                      <SelectTrigger className="w-full text-xs h-8">
                         <SelectValue placeholder="Set Status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -220,8 +220,8 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
             ))}
           </ul>
         ) : (
-          status === "idle" && !error && ( // Show this only when idle and no errors
-            <p className="text-muted-foreground text-center py-4">No SOS signals detected yet. Start a scan.</p>
+          status === "idle" && !error && ( 
+            <p className="text-muted-foreground text-sm text-center py-4">No SOS signals detected yet. Start a scan.</p>
           )
         )}
       </CardContent>

@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect, useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { UserCircle, Pill, Users, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
 
 const basicInfoSchema = z.object({
   name: z.string().optional(),
@@ -62,41 +62,41 @@ export function BasicInfoForm() {
 
 
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-xl mt-8">
+    <Card className="w-full max-w-lg mx-auto shadow-xl mt-6 sm:mt-8">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl flex items-center gap-2">
-          <UserCircle className="w-7 h-7 text-primary" />
+        <CardTitle className="font-headline text-xl flex items-center gap-2">
+          <UserCircle className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
           Basic Emergency Information
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm">
           (Optional) Providing this information may help rescuers. It will be stored locally on your device.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4 pt-6">
+          <CardContent className="space-y-3 pt-4 sm:pt-6">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="name" className="flex items-center gap-2"><Users className="w-4 h-4"/>Name</FormLabel>
+                  <FormLabel htmlFor="name" className="text-xs sm:text-sm flex items-center gap-1.5"><Users className="w-3.5 h-3.5 sm:w-4 sm:h-4"/>Name</FormLabel>
                   <FormControl>
-                    <Input id="name" placeholder="e.g., Jane Doe" {...field} />
+                    <Input id="name" placeholder="e.g., Jane Doe" {...field} className="text-sm"/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="age"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor="age">Age</FormLabel>
+                    <FormLabel htmlFor="age" className="text-xs sm:text-sm">Age</FormLabel>
                     <FormControl>
-                      <Input id="age" placeholder="e.g., 30" {...field} />
+                      <Input id="age" placeholder="e.g., 30" {...field} className="text-sm"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -107,9 +107,9 @@ export function BasicInfoForm() {
                 name="bloodGroup"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor="bloodGroup" className="flex items-center gap-2"><Pill className="w-4 h-4"/>Blood Group</FormLabel>
+                    <FormLabel htmlFor="bloodGroup" className="text-xs sm:text-sm flex items-center gap-1.5"><Pill className="w-3.5 h-3.5 sm:w-4 sm:h-4"/>Blood Group</FormLabel>
                     <FormControl>
-                      <Input id="bloodGroup" placeholder="e.g., O+" {...field} />
+                      <Input id="bloodGroup" placeholder="e.g., O+" {...field} className="text-sm"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -121,17 +121,17 @@ export function BasicInfoForm() {
               name="emergencyContact"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="emergencyContact" className="flex items-center gap-2"><Phone className="w-4 h-4"/>Emergency Contact (Name/Number)</FormLabel>
+                  <FormLabel htmlFor="emergencyContact" className="text-xs sm:text-sm flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4"/>Emergency Contact</FormLabel>
                   <FormControl>
-                    <Input id="emergencyContact" placeholder="e.g., John (Brother) / 555-1234" {...field} />
+                    <Input id="emergencyContact" placeholder="e.g., John (Brother) / 555-1234" {...field} className="text-sm"/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </CardContent>
-          <CardFooter className="flex justify-end p-6 border-t">
-            <Button type="submit" variant={isSaved ? "outline" : "default"}>
+          <CardFooter className="flex justify-end p-4 sm:p-6 border-t">
+            <Button type="submit" variant={isSaved ? "outline" : "default"} size="sm" className="text-xs sm:text-sm">
               {isSaved ? "Update Information" : "Save Information"}
             </Button>
           </CardFooter>

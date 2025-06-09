@@ -56,11 +56,11 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl flex items-center gap-2">
-          <Map className="w-6 h-6 text-primary" />
+        <CardTitle className="font-headline text-xl flex items-center gap-2">
+          <Map className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           Incident Map
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm">
           Visual overview of detected SOS signals and your current location. Click pins or buttons for directions. (Map is illustrative)
         </CardDescription>
       </CardHeader>
@@ -80,7 +80,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
               style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
               title={`Your Location: LAT ${rescuerLocation.lat}, LON ${rescuerLocation.lon}`}
             >
-              <MapPin className="w-8 h-8 fill-blue-600" />
+              <MapPin className="w-6 h-6 sm:w-8 sm:h-8 fill-blue-600" />
               <span className="text-xs bg-white/70 px-1 rounded">You</span>
             </div>
           )}
@@ -117,7 +117,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
                     }
                   }}
                 >
-                  <MapPin className="w-6 h-6 fill-red-500" />
+                  <MapPin className="w-5 h-5 sm:w-6 sm:h-6 fill-red-500" />
                   <span className="text-xs bg-white/70 px-1 rounded">SOS</span>
                 </div>
               )
@@ -125,16 +125,16 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
             return null;
           })}
         </div>
-        <div className="mt-4 space-y-2">
+        <div className="mt-3 sm:mt-4 space-y-1.5">
           {rescuerLocation && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               <span className='font-semibold text-foreground'>Your Location (Simulated):</span> LAT {rescuerLocation.lat}, LON {rescuerLocation.lon}
             </p>
           )}
           {signals.length > 0 ? (
             signals.filter(s => s.lat && s.lon).length > 0 ? (
               signals.map(s => s.lat && s.lon && (
-                <div key={s.id} className="flex items-center justify-between text-sm text-muted-foreground border-b pb-1 mb-1">
+                <div key={s.id} className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground border-b pb-1 mb-1">
                   <div>
                     <span className='font-semibold text-destructive'>SOS Signal:</span> {s.name}
                     <br />
@@ -145,7 +145,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => openGoogleMapsDirections(s.lat!, s.lon!)}
-                      className="ml-2"
+                      className="ml-2 text-xs h-7 sm:h-8"
                     >
                       <Navigation className="mr-1 h-3 w-3" />
                       Directions
@@ -154,10 +154,10 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">No geolocated SOS signals to display on map.</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">No geolocated SOS signals to display on map.</p>
             )
           ) : (
-            <p className="text-sm text-muted-foreground">No SOS signals detected to display on map.</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">No SOS signals detected to display on map.</p>
           )}
            <p className="text-xs text-muted-foreground mt-2">
             Map is for illustrative purposes. Trilateration and precise victim locating from Bluetooth signals are advanced features.
@@ -167,4 +167,3 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
     </Card>
   );
 }
-

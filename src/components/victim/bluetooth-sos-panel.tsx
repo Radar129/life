@@ -94,17 +94,17 @@ export function BluetoothSOSPanel() {
   const getStatusContent = () => {
     switch (status) {
       case "inactive":
-        return { icon: <XCircle className="w-12 h-12 text-muted-foreground" />, text: "SOS is Inactive.", color: "text-muted-foreground" };
+        return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground" />, text: "SOS is Inactive.", color: "text-muted-foreground" };
       case "activating":
-        return { icon: <Loader2 className="w-12 h-12 text-primary animate-spin" />, text: "Activating SOS...", color: "text-primary" };
+        return { icon: <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-primary animate-spin" />, text: "Activating SOS...", color: "text-primary" };
       case "active":
-        return { icon: <CheckCircle className="w-12 h-12 text-green-500" />, text: `SOS Active! Broadcasting location: ${location ? `LAT ${location.lat}, LON ${location.lon}` : 'N/A'}`, color: "text-green-500" };
+        return { icon: <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />, text: `SOS Active! Broadcasting: ${location ? `LAT ${location.lat}, LON ${location.lon}` : 'Location N/A'}`, color: "text-green-500" };
       case "error":
-        return { icon: <AlertTriangle className="w-12 h-12 text-destructive" />, text: `Error: ${error}`, color: "text-destructive" };
+        return { icon: <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: `Error: ${error}`, color: "text-destructive" };
       case "unsupported":
-        return { icon: <Bluetooth className="w-12 h-12 text-destructive" />, text: "Bluetooth not supported by browser.", color: "text-destructive" };
+        return { icon: <Bluetooth className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: "Bluetooth not supported by browser.", color: "text-destructive" };
       default:
-        return { icon: <XCircle className="w-12 h-12 text-muted-foreground" />, text: "SOS is Inactive.", color: "text-muted-foreground" };
+        return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground" />, text: "SOS is Inactive.", color: "text-muted-foreground" };
     }
   };
 
@@ -113,46 +113,46 @@ export function BluetoothSOSPanel() {
   return (
     <Card className="w-full max-w-lg mx-auto shadow-xl">
       <CardHeader>
-        <CardTitle className="font-headline text-3xl text-center">Victim SOS Mode</CardTitle>
-        <CardDescription className="text-center">
+        <CardTitle className="font-headline text-2xl text-center">Victim SOS Mode</CardTitle>
+        <CardDescription className="text-center text-xs sm:text-sm">
           Broadcast your location and activate alerts. (Simulated for web environment)
         </CardDescription>
       </CardHeader>
-      <CardContent className="text-center space-y-6 py-10">
+      <CardContent className="text-center space-y-4 py-6 sm:py-10">
         <div className={`flex justify-center items-center ${color}`}>
           {icon}
         </div>
-        <p className={`text-lg font-semibold ${color}`}>{text}</p>
+        <p className={`text-base font-semibold ${color} px-2`}>{text}</p>
         
         {status === "active" && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-center gap-2 text-green-500">
-              <Zap className="w-5 h-5" /> <span>Flashlight Blinking (Simulated)</span>
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center justify-center gap-1.5 text-sm text-green-500">
+              <Zap className="w-4 h-4" /> <span>Flashlight Blinking (Simulated)</span>
             </div>
-            <div className="flex items-center justify-center gap-2 text-green-500">
-              <Volume2 className="w-5 h-5" /> <span>SOS Buzzer Active (Simulated)</span>
+            <div className="flex items-center justify-center gap-1.5 text-sm text-green-500">
+              <Volume2 className="w-4 h-4" /> <span>SOS Buzzer Active (Simulated)</span>
             </div>
-            <p className="text-sm text-muted-foreground pt-2">
-              Ensure your device's Bluetooth is ON. Rescuers nearby may detect your signal.
+            <p className="text-xs text-muted-foreground pt-1">
+              Ensure Bluetooth is ON. Rescuers nearby may detect your signal.
             </p>
           </div>
         )}
 
          {status === "error" && error?.includes("Geolocation") && (
-          <p className="text-sm text-destructive">
+          <p className="text-xs text-destructive">
             Please enable location services in your browser and system settings and try again.
           </p>
         )}
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 p-6 border-t">
+      <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 p-4 sm:p-6 border-t">
         {status !== "active" && status !== "activating" && (
-          <Button onClick={activateSOS} size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/80 text-accent-foreground">
-            <AlertTriangle className="mr-2 h-5 w-5" /> Activate SOS
+          <Button onClick={activateSOS} size="default" className="w-full sm:w-auto bg-accent hover:bg-accent/80 text-accent-foreground text-sm">
+            <AlertTriangle className="mr-2 h-4 w-4" /> Activate SOS
           </Button>
         )}
         {(status === "active" || status === "activating") && (
-          <Button onClick={deactivateSOS} variant="outline" size="lg" className="w-full sm:w-auto">
-            <XCircle className="mr-2 h-5 w-5" /> Deactivate SOS
+          <Button onClick={deactivateSOS} variant="outline" size="default" className="w-full sm:w-auto text-sm">
+            <XCircle className="mr-2 h-4 w-4" /> Deactivate SOS
           </Button>
         )}
       </CardFooter>

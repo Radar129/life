@@ -5,9 +5,9 @@ import { Separator } from '@/components/ui/separator';
 
 export default function VictimPage() {
   return (
-    <div className="container mx-auto py-8 flex flex-col items-center space-y-12">
+    <div className="container mx-auto py-6 flex flex-col items-center space-y-8">
       <BluetoothSOSPanel />
-      <Separator className="my-4 max-w-lg" />
+      <Separator className="my-3 max-w-lg" />
       <BasicInfoForm />
     </div>
   );

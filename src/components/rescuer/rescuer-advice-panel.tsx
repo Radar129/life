@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -15,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from '@/components/ui/separator';
 
 const rescuerAdviceSchema = z.object({
-  sceneInformation: z.string().min(20, { message: "Please provide detailed scene information (at least 20 characters)." }).max(2000),
+  sceneInformation: z.string().min(10, { message: "Please provide scene information (min 10 characters)." }).max(1500),
 });
 
 type RescuerAdviceFormValues = z.infer<typeof rescuerAdviceSchema>;
@@ -51,28 +52,28 @@ export function RescuerAdvicePanel() {
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl flex items-center gap-2">
-          <BotMessageSquare className="w-6 h-6 text-primary" />
+        <CardTitle className="font-headline text-xl flex items-center gap-2">
+          <BotMessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           AI Rescuer Advice
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm">
           Describe the current scene, and the AI will suggest potential next actions.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             <FormField
               control={form.control}
               name="sceneInformation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="sceneInformation" className="text-base">Current Scene Details</FormLabel>
+                  <FormLabel htmlFor="sceneInformation" className="text-sm">Current Scene Details</FormLabel>
                   <FormControl>
                     <Textarea
                       id="sceneInformation"
-                      placeholder="Describe the environment, number of victims, apparent injuries, hazards, resources available, etc."
-                      className="min-h-[120px] text-base"
+                      placeholder="Environment, victims, injuries, hazards, resources..."
+                      className="min-h-[100px] text-sm"
                       {...field}
                       disabled={isLoading}
                     />
@@ -82,8 +83,8 @@ export function RescuerAdvicePanel() {
               )}
             />
           </CardContent>
-          <CardFooter className="flex justify-end p-6 border-t">
-            <Button type="submit" disabled={isLoading} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <CardFooter className="flex justify-end p-4 sm:p-6 border-t">
+            <Button type="submit" disabled={isLoading} className="bg-accent hover:bg-accent/90 text-accent-foreground text-sm" size="sm">
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -96,8 +97,8 @@ export function RescuerAdvicePanel() {
       </Form>
 
       {error && (
-        <div className="p-6 border-t">
-          <Alert variant="destructive">
+        <div className="p-4 sm:p-6 border-t">
+          <Alert variant="destructive" className="text-sm">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -106,27 +107,27 @@ export function RescuerAdvicePanel() {
       )}
 
       {advice && (
-        <div className="p-6 border-t space-y-4">
-          <h3 className="text-xl font-headline font-semibold text-primary">AI Generated Advice:</h3>
+        <div className="p-4 sm:p-6 border-t space-y-3">
+          <h3 className="text-lg font-headline font-semibold text-primary">AI Generated Advice:</h3>
           
-          <div className="p-4 bg-muted/50 rounded-md">
-            <h4 className="font-semibold text-lg mb-2">Suggested Actions:</h4>
+          <div className="p-3 bg-muted/50 rounded-md">
+            <h4 className="font-semibold text-base mb-1.5">Suggested Actions:</h4>
             {advice.suggestedActions && advice.suggestedActions.length > 0 ? (
-              <ul className="list-disc list-inside space-y-1 pl-2">
+              <ul className="list-disc list-inside space-y-1 pl-2 text-sm">
                 {advice.suggestedActions.map((action, index) => (
                   <li key={index} className="text-foreground">{action}</li>
                 ))}
               </ul>
             ) : (
-              <p className="text-muted-foreground">No specific actions suggested for this scenario.</p>
+              <p className="text-muted-foreground text-sm">No specific actions suggested for this scenario.</p>
             )}
           </div>
 
           <Separator />
 
-          <div className="p-4 bg-muted/50 rounded-md">
-            <h4 className="font-semibold text-lg mb-2">Reasoning:</h4>
-            <p className="text-foreground whitespace-pre-wrap">{advice.reasoning || "No reasoning provided."}</p>
+          <div className="p-3 bg-muted/50 rounded-md">
+            <h4 className="font-semibold text-base mb-1.5">Reasoning:</h4>
+            <p className="text-foreground whitespace-pre-wrap text-sm">{advice.reasoning || "No reasoning provided."}</p>
           </div>
         </div>
       )}

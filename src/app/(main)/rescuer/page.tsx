@@ -56,25 +56,25 @@ export default function RescuerPage() {
 
 
   return (
-    <div className="container mx-auto py-6 sm:py-8">
-      <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+    <div className="container mx-auto py-4 sm:py-6">
+      <header className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
         <div className="text-center sm:text-left">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-headline font-bold text-primary">Rescuer Dashboard</h1>
-            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground mt-1 sm:mt-2">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-headline font-bold text-primary">Rescuer Dashboard</h1>
+            <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mt-1">
             Access tools to locate victims and receive operational advice.
             </p>
         </div>
-        <Button variant="outline" onClick={handleLogout} size="sm" className="w-full sm:w-auto">
-          <LogOut className="mr-2 h-4 w-4" /> Logout
+        <Button variant="outline" onClick={handleLogout} size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
+          <LogOut className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Logout
         </Button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-start">
-        <div className="space-y-6 sm:space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
+        <div className="space-y-4 sm:space-y-6">
           <SOSScannerPanel onSignalsDetected={handleSignalsDetected} detectedSignals={detectedSignals} setDetectedSignals={setDetectedSignals}/>
           <MapDisplayPanel signals={detectedSignals} />
         </div>
-        <div className="lg:sticky lg:top-[calc(4rem+1.5rem)]"> {/* Adjust top based on new header height (4rem) + some padding (1.5rem for py-6 of main) */}
+        <div className="lg:sticky lg:top-[calc(4rem+1.5rem)]"> {/* Header (4rem) + main top padding (1.5rem from py-6) */}
           <RescuerAdvicePanel />
         </div>
       </div>
