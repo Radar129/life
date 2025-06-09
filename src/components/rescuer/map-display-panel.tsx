@@ -32,10 +32,11 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
         },
         () => {
           console.warn("Could not get rescuer location. Using default.");
-          setRescuerLocation({ lat: 34.0500, lon: -118.2500 });
+          setRescuerLocation({ lat: 34.0500, lon: -118.2500 }); // Default/fallback location
         }
       );
     } else {
+       // Fallback if geolocation is not supported
        setRescuerLocation({ lat: 34.0500, lon: -118.2500 });
     }
   }, []);
@@ -45,7 +46,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
       const url = `https://www.google.com/maps/dir/?api=1&origin=${rescuerLocation.lat},${rescuerLocation.lon}&destination=${victimLat},${victimLon}&travelmode=driving`;
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
-      // Fallback if rescuer location is not available (should be rare due to useEffect)
+      // Fallback if rescuer location is not available
       const url = `https://www.google.com/maps/search/?api=1&query=${victimLat},${victimLon}`;
       window.open(url, '_blank', 'noopener,noreferrer');
       console.warn("Rescuer location not available, opening victim location directly.");
@@ -84,17 +85,19 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
           )}
           {signals.map((signal, index) => {
             if (signal.lat && signal.lon) {
-              const xOffset = (index % 3) * 20 - 20;
-              const yOffset = Math.floor(index / 3) * 20 - 20;
+              // Basic distribution logic for pins on placeholder map
+              const xOffset = (index % 3) * 20 - 20; // Spread pins horizontally
+              const yOffset = Math.floor(index / 3) * 20 - 20; // Spread pins vertically
+
               return (
                  <div
                   key={signal.id}
                   role="button"
                   tabIndex={0}
-                  className="absolute flex flex-col items-center text-red-500 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                  className="absolute z-10 flex flex-col items-center text-red-500 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded p-1"
                   style={{
-                    top: `${40 + yOffset}%`,
-                    left: `${30 + xOffset}%`,
+                    top: `${40 + yOffset}%`, // Example positioning, adjust as needed
+                    left: `${30 + xOffset}%`, // Example positioning, adjust as needed
                     transform: 'translate(-50%, -50%)'
                   }}
                   title={`Victim: ${signal.name} (LAT ${signal.lat}, LON ${signal.lon}) - Click for directions`}
