@@ -72,6 +72,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
             layout="fill"
             objectFit="cover"
             data-ai-hint="map rescue"
+            className="pointer-events-none"
           />
           {rescuerLocation && (
             <div
@@ -94,18 +95,25 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
                   key={signal.id}
                   role="button"
                   tabIndex={0}
-                  className="absolute z-10 flex flex-col items-center text-red-500 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded p-1"
+                  className="absolute z-20 flex flex-col items-center text-red-500 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded p-1"
                   style={{
-                    top: `${40 + yOffset}%`, // Example positioning, adjust as needed
-                    left: `${30 + xOffset}%`, // Example positioning, adjust as needed
+                    top: `${40 + yOffset}%`, 
+                    left: `${30 + xOffset}%`, 
                     transform: 'translate(-50%, -50%)'
                   }}
                   title={`Victim: ${signal.name} (LAT ${signal.lat}, LON ${signal.lon}) - Click for directions`}
-                  onClick={() => openGoogleMapsDirections(signal.lat!, signal.lon!)}
+                  onClick={() => {
+                    console.log('SOS Pin clicked:', signal.name, signal.lat, signal.lon); // Diagnostic log
+                    if (signal.lat && signal.lon) {
+                     openGoogleMapsDirections(signal.lat, signal.lon);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault(); // Prevent page scroll if space is pressed
-                      openGoogleMapsDirections(signal.lat!, signal.lon!);
+                      e.preventDefault(); 
+                      if (signal.lat && signal.lon) {
+                        openGoogleMapsDirections(signal.lat, signal.lon);
+                      }
                     }
                   }}
                 >
@@ -124,28 +132,32 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
             </p>
           )}
           {signals.length > 0 ? (
-            signals.map(s => s.lat && s.lon && (
-              <div key={s.id} className="flex items-center justify-between text-sm text-muted-foreground border-b pb-1 mb-1">
-                <div>
-                  <span className='font-semibold text-destructive'>SOS Signal:</span> {s.name}
-                  <br />
-                  <span className="text-xs">LAT {s.lat}, LON {s.lon}</span>
+            signals.filter(s => s.lat && s.lon).length > 0 ? (
+              signals.map(s => s.lat && s.lon && (
+                <div key={s.id} className="flex items-center justify-between text-sm text-muted-foreground border-b pb-1 mb-1">
+                  <div>
+                    <span className='font-semibold text-destructive'>SOS Signal:</span> {s.name}
+                    <br />
+                    <span className="text-xs">LAT {s.lat}, LON {s.lon}</span>
+                  </div>
+                  {rescuerLocation && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openGoogleMapsDirections(s.lat!, s.lon!)}
+                      className="ml-2"
+                    >
+                      <Navigation className="mr-1 h-3 w-3" />
+                      Directions
+                    </Button>
+                  )}
                 </div>
-                {rescuerLocation && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openGoogleMapsDirections(s.lat!, s.lon!)}
-                    className="ml-2"
-                  >
-                    <Navigation className="mr-1 h-3 w-3" />
-                    Directions
-                  </Button>
-                )}
-              </div>
-            ))
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No geolocated SOS signals to display on map.</p>
+            )
           ) : (
-            <p className="text-sm text-muted-foreground">No geolocated SOS signals to display on map.</p>
+            <p className="text-sm text-muted-foreground">No SOS signals detected to display on map.</p>
           )}
            <p className="text-xs text-muted-foreground mt-2">
             Map is for illustrative purposes. Trilateration and precise victim locating from Bluetooth signals are advanced features.
@@ -155,3 +167,4 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
     </Card>
   );
 }
+
