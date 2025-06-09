@@ -1,33 +1,39 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { List, ListItem } from '@/components/ui/list'; // Assuming a simple list component or use divs
-import { Bluetooth, Search, WifiOff, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin } from 'lucide-react';
+import { Bluetooth, Search, WifiOff, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type {DetectedSignal as BaseDetectedSignal} from '@/types/signals'; // Assuming types are defined
 
-interface DetectedSignal {
-  id: string;
-  name: string;
-  rssi: number;
-  lat?: number;
-  lon?: number;
-  timestamp: number;
+
+interface DetectedSignal extends BaseDetectedSignal {
+  status?: string;
 }
+
 
 type ScanStatus = "idle" | "scanning" | "error" | "unsupported";
 
-// Simple List & ListItem components (can be moved to ui if reused)
 const ListItemWrapper = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <li className={`p-4 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${className}`}>{children}</li>
+  <li className={`p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${className}`}>{children}</li>
 );
 
+const VICTIM_STATUSES = ["Pending", "Located", "Assistance In Progress", "Rescued", "No Response"];
 
-export function SOSScannerPanel({ onSignalsDetected }: { onSignalsDetected: (signals: DetectedSignal[]) => void }) {
+
+interface SOSScannerPanelProps {
+  onSignalsDetected: (signals: DetectedSignal[]) => void;
+  detectedSignals: DetectedSignal[];
+  setDetectedSignals: React.Dispatch<React.SetStateAction<DetectedSignal[]>>;
+}
+
+
+export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetectedSignals }: SOSScannerPanelProps) {
   const [status, setStatus] = useState<ScanStatus>("idle");
-  const [signals, setSignals] = useState<DetectedSignal[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [scanProgress, setScanProgress] = useState(0);
   const { toast } = useToast();
@@ -49,8 +55,8 @@ export function SOSScannerPanel({ onSignalsDetected }: { onSignalsDetected: (sig
   const startScan = async () => {
     setStatus("scanning");
     setError(null);
-    setSignals([]);
-    onSignalsDetected([]);
+    setDetectedSignals([]); // Clear previous signals from local state
+    onSignalsDetected([]); // Notify parent
     setScanProgress(0);
 
     if (!navigator.bluetooth) {
@@ -62,8 +68,7 @@ export function SOSScannerPanel({ onSignalsDetected }: { onSignalsDetected: (sig
 
     toast({ title: "Scanning Started", description: "Looking for SOS signals... (Simulated)" });
 
-    // Simulate scanning process
-    const totalScanTime = 5000; // 5 seconds
+    const totalScanTime = 5000;
     const intervalTime = 100;
     let currentTime = 0;
 
@@ -72,33 +77,48 @@ export function SOSScannerPanel({ onSignalsDetected }: { onSignalsDetected: (sig
       setScanProgress((currentTime / totalScanTime) * 100);
       if (currentTime >= totalScanTime) {
         clearInterval(intervalId);
-        finishScan();
+        finishScan([]); // Pass empty array if no devices found during timeout
       }
     }, intervalTime);
 
     // Simulate finding devices
-    // This would be navigator.bluetooth.requestLEScan() in a real scenario
     setTimeout(() => {
-      const newSignals: DetectedSignal[] = [
+      const newSignalsRaw: Omit<DetectedSignal, 'status'>[] = [
         { id: "device1", name: "SOS_34.0522_-118.2437", rssi: -55, ...parseSignalName("SOS_34.0522_-118.2437"), timestamp: Date.now() },
         { id: "device2", name: "SOS_34.0580_-118.2500", rssi: -70, ...parseSignalName("SOS_34.0580_-118.2500"), timestamp: Date.now() },
-        { id: "device3", name: "Generic Bluetooth Device", rssi: -85, timestamp: Date.now() }, // Non-SOS signal
+        { id: "device3", name: "Generic Bluetooth Device", rssi: -85, timestamp: Date.now() },
       ];
-      setSignals(newSignals.filter(s => s.name.startsWith("SOS_")));
-      onSignalsDetected(newSignals.filter(s => s.name.startsWith("SOS_")));
-    }, 2500); // Simulate finding devices halfway through the scan
+      const filteredSignals = newSignalsRaw
+        .filter(s => s.name.startsWith("SOS_"))
+        .map(s => ({ ...s, status: "Pending" })); // Add default status
+      
+      clearInterval(intervalId); // Stop progress interval as we found devices
+      finishScan(filteredSignals);
+    }, 2500);
   };
 
-  const finishScan = () => {
+  const finishScan = (foundSignals: DetectedSignal[]) => {
     setStatus("idle");
     setScanProgress(100);
-    setTimeout(() => setScanProgress(0), 1000); // Reset progress bar after a bit
-    if (signals.length === 0 && status !== "error" && status !== "unsupported") {
+    setDetectedSignals(foundSignals);
+    onSignalsDetected(foundSignals);
+    setTimeout(() => setScanProgress(0), 1000);
+
+    if (foundSignals.length === 0 && status !== "error" && status !== "unsupported") {
          toast({ title: "Scan Complete", description: "No SOS signals detected in this simulated scan." });
-    } else if (signals.length > 0) {
-        toast({ title: "Scan Complete", description: `${signals.length} SOS signal(s) detected. (Simulated)` });
+    } else if (foundSignals.length > 0) {
+        toast({ title: "Scan Complete", description: `${foundSignals.length} SOS signal(s) detected. (Simulated)` });
     }
   }
+
+  const handleStatusChange = (signalId: string, newStatus: string) => {
+    const updatedSignals = detectedSignals.map(signal =>
+      signal.id === signalId ? { ...signal, status: newStatus } : signal
+    );
+    setDetectedSignals(updatedSignals);
+    onSignalsDetected(updatedSignals); // Notify parent if it needs the full updated list
+  };
+
 
   const getSignalStrengthIcon = (rssi: number) => {
     if (rssi > -60) return <SignalHigh className="w-5 h-5 text-green-500" />;
@@ -142,36 +162,53 @@ export function SOSScannerPanel({ onSignalsDetected }: { onSignalsDetected: (sig
             <p>{error || "Web Bluetooth API not available."}</p>
           </div>
         )}
-        {status === "error" && (
+        {status === "error" && error && (
           <div className="text-destructive flex items-center gap-2 p-4 bg-destructive/10 rounded-md">
-            <AlertTriangle className="w-6 h-6" /> 
-            <p>{error || "An error occurred during scanning."}</p>
+            <AlertTriangleIcon className="w-6 h-6" /> 
+            <p>{error}</p>
           </div>
         )}
 
-        {signals.length > 0 ? (
-          <ul className="space-y-2 border rounded-md max-h-60 overflow-y-auto">
-            {signals.map((signal) => (
+        {detectedSignals.length > 0 ? (
+          <ul className="space-y-1 border rounded-md max-h-72 overflow-y-auto">
+            {detectedSignals.map((signal) => (
               <ListItemWrapper key={signal.id}>
-                <div className="flex justify-between items-center">
-                  <div>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                  <div className="flex-grow">
                     <p className="font-semibold text-foreground">{signal.name}</p>
                     {signal.lat && signal.lon && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <MapPin className="w-3 h-3" /> LAT: {signal.lat}, LON: {signal.lon}
                       </p>
                     )}
+                     <div className="flex items-center gap-2 text-xs mt-1">
+                        {getSignalStrengthIcon(signal.rssi)}
+                        <span>{getProximityText(signal.rssi)} (RSSI: {signal.rssi} dBm)</span>
+                      </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {getSignalStrengthIcon(signal.rssi)}
-                    <span>{getProximityText(signal.rssi)} (RSSI: {signal.rssi} dBm)</span>
+                  <div className="sm:w-48 flex-shrink-0">
+                    <Select
+                      value={signal.status || "Pending"}
+                      onValueChange={(value) => handleStatusChange(signal.id, value)}
+                    >
+                      <SelectTrigger className="w-full text-xs h-9">
+                        <SelectValue placeholder="Set Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VICTIM_STATUSES.map(stat => (
+                          <SelectItem key={stat} value={stat} className="text-xs">
+                            {stat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </ListItemWrapper>
             ))}
           </ul>
         ) : (
-          status !== "scanning" && status !== "unsupported" && status !== "error" && (
+          status !== "scanning" && status !== "unsupported" && (!error || status === "error") && (
             <p className="text-muted-foreground text-center py-4">No SOS signals detected yet. Start a scan.</p>
           )
         )}
@@ -179,3 +216,8 @@ export function SOSScannerPanel({ onSignalsDetected }: { onSignalsDetected: (sig
     </Card>
   );
 }
+
+// Ensure AlertTriangleIcon is defined if not imported or used locally
+// const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => (
+//   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+// );

@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, CheckCircle, Bluetooth, XCircle, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Bluetooth, XCircle, Loader2, Zap, Volume2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 type SOSStatus = "inactive" | "activating" | "active" | "error" | "unsupported";
@@ -13,6 +14,8 @@ export function BluetoothSOSPanel() {
   const [status, setStatus] = useState<SOSStatus>("inactive");
   const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFlashlightActive, setIsFlashlightActive] = useState(false);
+  const [isBuzzerActive, setIsBuzzerActive] = useState(false);
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
@@ -45,6 +48,8 @@ export function BluetoothSOSPanel() {
   const activateSOS = async () => {
     setStatus("activating");
     setError(null);
+    setIsFlashlightActive(false);
+    setIsBuzzerActive(false);
 
     if (!navigator.bluetooth) {
       setStatus("unsupported");
@@ -57,20 +62,18 @@ export function BluetoothSOSPanel() {
       const loc = await getDeviceLocation();
       setLocation(loc);
       
-      // Simulate Bluetooth advertising
-      // In a real web app, true Bluetooth LE advertising with custom device name is very limited.
-      // We're simulating the intent.
       console.log(`Simulating SOS broadcast. Device name format: SOS_${loc.lat}_${loc.lon}`);
       toast({
         title: "SOS Activating",
         description: `Attempting to broadcast SOS with location: LAT ${loc.lat}, LON ${loc.lon}. (Simulated Bluetooth broadcast)`,
       });
 
-      // Simulate a delay for activation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate activation delay
 
+      setIsFlashlightActive(true); // Simulate flashlight activation
+      setIsBuzzerActive(true); // Simulate buzzer activation
       setStatus("active");
-      toast({ title: "SOS Active", description: "Your SOS signal is being broadcast (simulated).", variant: "default" });
+      toast({ title: "SOS Active", description: "Your SOS signal and alerts are active (simulated).", variant: "default" });
 
     } catch (err: any) {
       setStatus("error");
@@ -83,7 +86,9 @@ export function BluetoothSOSPanel() {
     setStatus("inactive");
     setError(null);
     setLocation(null);
-    toast({ title: "SOS Deactivated", description: "SOS broadcast has been stopped." });
+    setIsFlashlightActive(false);
+    setIsBuzzerActive(false);
+    toast({ title: "SOS Deactivated", description: "SOS broadcast and alerts have been stopped." });
   };
 
   const getStatusContent = () => {
@@ -110,8 +115,7 @@ export function BluetoothSOSPanel() {
       <CardHeader>
         <CardTitle className="font-headline text-3xl text-center">Victim SOS Mode</CardTitle>
         <CardDescription className="text-center">
-          Broadcast your location via Bluetooth to nearby rescuers.
-          This is a simulation due to web browser limitations.
+          Broadcast your location and activate alerts. (Simulated for web environment)
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center space-y-6 py-10">
@@ -119,18 +123,28 @@ export function BluetoothSOSPanel() {
           {icon}
         </div>
         <p className={`text-lg font-semibold ${color}`}>{text}</p>
+        
         {status === "active" && (
-          <p className="text-sm text-muted-foreground">
-            Ensure your device's Bluetooth is ON and discoverable. Rescuers nearby running the Life app may detect your signal.
-          </p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2 text-green-500">
+              <Zap className="w-5 h-5" /> <span>Flashlight Blinking (Simulated)</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-green-500">
+              <Volume2 className="w-5 h-5" /> <span>SOS Buzzer Active (Simulated)</span>
+            </div>
+            <p className="text-sm text-muted-foreground pt-2">
+              Ensure your device's Bluetooth is ON. Rescuers nearby may detect your signal.
+            </p>
+          </div>
         )}
+
          {status === "error" && error?.includes("Geolocation") && (
           <p className="text-sm text-destructive">
             Please enable location services in your browser and system settings and try again.
           </p>
         )}
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 p-6">
+      <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 p-6 border-t">
         {status !== "active" && status !== "activating" && (
           <Button onClick={activateSOS} size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/80 text-accent-foreground">
             <AlertTriangle className="mr-2 h-5 w-5" /> Activate SOS
