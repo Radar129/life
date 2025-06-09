@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { UserCircle, Pill, Users, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const basicInfoSchema = z.object({
   name: z.string().optional(),
@@ -47,7 +47,7 @@ export function BasicInfoForm() {
     });
   };
   
-  React.useEffect(() => {
+  useEffect(() => {
     const savedInfo = localStorage.getItem('victimBasicInfo');
     if (savedInfo) {
       try {
