@@ -113,7 +113,7 @@ export function BluetoothSOSPanel() {
   return (
     <Card className="w-full max-w-lg mx-auto shadow-xl">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl text-center">Victim SOS Mode</CardTitle>
+        <CardTitle className="font-headline text-xl sm:text-2xl text-center">Victim SOS Mode</CardTitle>
         <CardDescription className="text-center text-xs sm:text-sm">
           Broadcast your location and activate alerts. (Simulated for web environment)
         </CardDescription>
@@ -122,7 +122,7 @@ export function BluetoothSOSPanel() {
         <div className={`flex justify-center items-center ${color}`}>
           {icon}
         </div>
-        <p className={`text-base font-semibold ${color} px-2`}>{text}</p>
+        <p className={`text-base sm:text-lg font-semibold ${color} px-2`}>{text}</p>
         
         {status === "active" && (
           <div className="space-y-2 pt-2">
@@ -132,27 +132,24 @@ export function BluetoothSOSPanel() {
             <div className="flex items-center justify-center gap-1.5 text-sm text-green-500">
               <Volume2 className="w-4 h-4" /> <span>SOS Buzzer Active (Simulated)</span>
             </div>
-            <p className="text-xs text-muted-foreground pt-1">
-              Ensure Bluetooth is ON. Rescuers nearby may detect your signal.
-            </p>
           </div>
         )}
 
          {status === "error" && error?.includes("Geolocation") && (
-          <p className="text-xs text-destructive">
+          <p className="text-xs text-destructive pt-2">
             Please enable location services in your browser and system settings and try again.
           </p>
         )}
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 p-4 sm:p-6 border-t">
         {status !== "active" && status !== "activating" && (
-          <Button onClick={activateSOS} size="default" className="w-full sm:w-auto bg-accent hover:bg-accent/80 text-accent-foreground text-sm">
-            <AlertTriangle className="mr-2 h-4 w-4" /> Activate SOS
+          <Button onClick={activateSOS} size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/80 text-accent-foreground text-sm sm:text-base">
+            <AlertTriangle className="mr-2 h-4 sm:h-5 w-4 sm:w-5" /> Activate SOS
           </Button>
         )}
         {(status === "active" || status === "activating") && (
-          <Button onClick={deactivateSOS} variant="outline" size="default" className="w-full sm:w-auto text-sm">
-            <XCircle className="mr-2 h-4 w-4" /> Deactivate SOS
+          <Button onClick={deactivateSOS} variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base">
+            <XCircle className="mr-2 h-4 sm:h-5 w-4 sm:w-5" /> Deactivate SOS
           </Button>
         )}
       </CardFooter>
