@@ -132,6 +132,9 @@ export function BluetoothSOSPanel() {
             <div className="flex items-center justify-center gap-1.5 text-sm text-green-500">
               <Volume2 className="w-4 h-4" /> <span>SOS Buzzer Active (Simulated)</span>
             </div>
+            <p className="text-xs sm:text-sm text-muted-foreground pt-2">
+              Rescuers nearby may detect your signal.
+            </p>
           </div>
         )}
 
