@@ -176,10 +176,15 @@ export function BasicInfoForm() {
 
     for (let i = 1; i <= 3; i++) {
         const contactName = details[`emergencyContact${i}Name` as keyof VictimBasicInfo];
+        let contactCountryCode = details[`emergencyContact${i}CountryCode` as keyof VictimBasicInfo];
         const contactPhone = details[`emergencyContact${i}Phone` as keyof VictimBasicInfo];
         
+        // Use shared code if individual code is MANUAL_CODE or undefined, but prefer individual if it's a real code
+        let finalCountryCode = contactCountryCode !== "MANUAL_CODE" && contactCountryCode ? contactCountryCode : sharedCountryCodeValue;
+        if (finalCountryCode === "MANUAL_CODE") finalCountryCode = ""; // Don't display "MANUAL_CODE"
+
         if (contactName || contactPhone) { 
-            detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${displaySharedCountryCode}${contactPhone || 'N/A'}\n`;
+            detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${finalCountryCode || ''}${contactPhone || 'N/A'}\n`;
         }
     }
     
@@ -383,12 +388,12 @@ export function BasicInfoForm() {
                 >
                   <FormControl>
                     <SelectTrigger id="sharedEmergencyContactCountryCode" className="text-sm">
-                      <SelectValue placeholder="Select Country">
+                       <SelectValue placeholder="Select Country">
                         {(() => {
                           const selectedCode = field.value; 
                           const country = countryCodes.find(c => c.code === selectedCode);
                           return country ? (
-                            <span className="flex items-center">
+                            <span className="flex items-center line-clamp-none">
                               <span className="mr-2 text-base">{country.flag}</span>
                               {country.name} ({country.code === "MANUAL_CODE" ? "Manual" : country.code})
                             </span>
@@ -450,7 +455,7 @@ export function BasicInfoForm() {
             name="customSOSMessage"
             render={({ field }) => (
               <FormItem>
-                {/* Label was here, removed as per user request */}
+                {/* <FormLabel htmlFor="customSOSMessage" className="text-xs flex items-center gap-1"><MessageSquare className="w-3 h-3"/>Personalized SOS Message</FormLabel> */}
                 <FormControl>
                   <Textarea id="customSOSMessage" placeholder="Default: Emergency! I need help. My location is being broadcast." {...field} className="text-sm min-h-[80px]" maxLength={160}/>
                 </FormControl>
@@ -473,3 +478,6 @@ export function BasicInfoForm() {
     </Form>
   );
 }
+
+
+    
