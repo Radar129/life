@@ -137,9 +137,9 @@ export function BluetoothSOSPanel() {
       name: victimName.replace(/_/g, ' '), // Store user-friendly name
       lat: currentLocation.lat,
       lon: currentLocation.lon,
-      rssi: -50 - Math.floor(Math.random() * 10),
+      rssi: -50 - Math.floor(Math.random() * 10), // Simulate local RSSI
       timestamp: Date.now(),
-      status: 'Active (Local)',
+      status: 'Active (Local)', // Status for rescuer panel if it picks this up
     };
     localStorage.setItem(LOCAL_STORAGE_SHARED_SOS_SIGNAL_KEY, JSON.stringify(signalDataForSharedStorage));
 
@@ -174,7 +174,9 @@ export function BluetoothSOSPanel() {
             broadcastSignal(newLoc, victimName, customMessage); 
           }).catch(err => {
             console.error("Error getting location for rebroadcast, using last known:", err);
-            broadcastSignal(currentLocation, victimName, customMessage); // Use last known if fresh fails
+            // Fallback to last known location if fetching new one fails
+            const lastKnownLocation = location || currentLocation; // Use component's location state if available, else the one passed initially
+            broadcastSignal(lastKnownLocation, victimName, customMessage); 
           });
           return REBROADCAST_INTERVAL;
         }
