@@ -12,8 +12,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, MessageSquare, Save, NotebookPen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { VictimBasicInfo } from '@/types/signals'; // Assuming type will be defined here
+import type { VictimBasicInfo } from '@/types/signals';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const bloodGroupOptions = [
+  "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"
+];
 
 const basicInfoSchema = z.object({
   name: z.string().optional(),
@@ -128,9 +133,20 @@ export function BasicInfoForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel htmlFor="bloodGroup" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Blood Group</FormLabel>
-                    <FormControl>
-                      <Input id="bloodGroup" placeholder="e.g., O+" {...field} className="text-sm"/>
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger id="bloodGroup" className="text-sm">
+                          <SelectValue placeholder="Select blood group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {bloodGroupOptions.map((group) => (
+                          <SelectItem key={group} value={group} className="text-sm">
+                            {group}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -243,3 +259,4 @@ export function BasicInfoForm() {
     </Card>
   );
 }
+
