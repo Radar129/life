@@ -14,13 +14,22 @@ interface DetectedSignal extends BaseDetectedSignal {
   advertisedName?: string; 
 }
 
-type ScanStatus = "idle" | "scanning" | "error" | "unsupported";
+type ScanStatus = "idle" | "scanning" | "error" | "simulating";
 
 const ListItemWrapper = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <li className={`p-2 sm:p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${className}`}>{children}</li>
 );
 
 const VICTIM_STATUSES = ["Pending", "Located", "Assistance In Progress", "Rescued", "No Response"];
+
+// Mock data for simulation
+const MOCK_SOS_SIGNALS: Omit<DetectedSignal, 'id' | 'timestamp' | 'status' | 'rssi'>[] = [
+  { name: "Alice Smith", advertisedName: "SOS_AliceSmith_34.0522_-118.2437", lat: 34.0522, lon: -118.2437 },
+  { name: "Bob Ray", advertisedName: "SOS_BobRay_34.0580_-118.2500", lat: 34.0580, lon: -118.2500 },
+  { name: "Carol Day", advertisedName: "SOS_CarolDay_34.0111_-118.1122", lat: 34.0111, lon: -118.1122 },
+  { name: "David Lee", advertisedName: "SOS_DavidLee_33.9988_-118.3000", lat: 33.9988, lon: -118.3000 },
+];
+let mockSignalCounter = 0;
 
 interface SOSScannerPanelProps {
   onSignalsDetected: (signals: DetectedSignal[]) => void;
@@ -30,20 +39,20 @@ interface SOSScannerPanelProps {
 
 export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetectedSignals }: SOSScannerPanelProps) {
   const [status, setStatus] = useState<ScanStatus>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null); // Kept for potential future real scan attempts
   const { toast } = useToast();
 
   const parseSignalName = (advertisedName: string | undefined): { victimName: string | undefined, lat: number | undefined, lon: number | undefined } => {
     if (advertisedName && advertisedName.startsWith("SOS_")) {
       const parts = advertisedName.split('_');
-      if (parts.length === 4) {
+      if (parts.length === 4) { // SOS_Name_Lat_Lon
         const victimName = parts[1].replace(/_/g, ' '); 
         const lat = parseFloat(parts[2]);
         const lon = parseFloat(parts[3]);
         if (!isNaN(lat) && !isNaN(lon) && victimName) {
           return { victimName, lat, lon };
         }
-      } else if (parts.length === 3) { 
+      } else if (parts.length === 3) { // SOS_Lat_Lon (name missing or couldn't be parsed)
         const lat = parseFloat(parts[1]);
         const lon = parseFloat(parts[2]);
         if (!isNaN(lat) && !isNaN(lon)) {
@@ -55,79 +64,47 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
   };
   
   const startScan = async () => {
-    setStatus("scanning");
+    setStatus("simulating"); // Changed from "scanning" to "simulating"
     setError(null);
-    // Don't clear existing signals, allow accumulation from multiple scans
-    // setDetectedSignals([]); 
-    // onSignalsDetected([]); 
+    
+    // Simulate discovering a new signal
+    toast({ title: "Scan Initiated (Simulation)", description: "Simulating discovery of nearby SOS signals..." });
 
-    if (!navigator.bluetooth) {
-      setStatus("unsupported");
-      setError("Web Bluetooth API is not supported by your browser.");
-      toast({ title: "Bluetooth Error", description: "Web Bluetooth not supported. Cannot scan for signals.", variant: "destructive" });
-      return;
-    }
+    setTimeout(() => { // Simulate a delay for scanning
+      const mockBaseSignal = MOCK_SOS_SIGNALS[mockSignalCounter % MOCK_SOS_SIGNALS.length];
+      mockSignalCounter++;
 
-    toast({ title: "Scan Initiated", description: "Requesting Bluetooth device..." });
-
-    try {
-      const device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices: true, // For broader discovery, can be refined with filters
-        // Example filter for a specific service (if victim device advertises one):
-        // filters: [{ services: ['heart_rate'] }] 
-        // optionalServices: ['battery_service'] // To potentially access more info after connection
-      });
-
-      setStatus("idle");
-      toast({ title: "Device Selected", description: `Device: ${device.name || device.id}` });
-      
-      const parsed = parseSignalName(device.name);
-      
-      // Use a placeholder RSSI for real devices as it's not directly available from requestDevice
-      // A more advanced implementation would use watchAdvertisements() if possible.
-      const placeholderRssi = -65; 
+      const parsed = parseSignalName(mockBaseSignal.advertisedName);
+      const simulatedRssi = -50 - Math.floor(Math.random() * 30); // Random RSSI between -50 and -80
 
       const newSignal: DetectedSignal = {
-        id: device.id,
-        advertisedName: device.name || "N/A",
-        name: parsed.victimName || device.name || "Unknown Device", // Use parsed name if available, else device name
+        id: `sim_${Date.now()}_${mockBaseSignal.advertisedName}`, // Unique ID for simulated signal
+        advertisedName: mockBaseSignal.advertisedName,
+        name: parsed.victimName || mockBaseSignal.name || "Unknown Simulated Device",
         lat: parsed.lat,
         lon: parsed.lon,
-        rssi: placeholderRssi, 
+        rssi: simulatedRssi, 
         timestamp: Date.now(),
         status: "Pending",
       };
 
       setDetectedSignals(prevSignals => {
-        // Avoid adding duplicates if scanning again for the same device
-        const existingSignalIndex = prevSignals.findIndex(s => s.id === newSignal.id);
+        const existingSignalIndex = prevSignals.findIndex(s => s.advertisedName === newSignal.advertisedName);
         let updatedSignals;
         if (existingSignalIndex > -1) {
-          updatedSignals = [...prevSignals];
-          updatedSignals[existingSignalIndex] = newSignal; // Update if found
+          // For simulation, let's update RSSI and timestamp if "found" again
+          updatedSignals = prevSignals.map(s => 
+            s.advertisedName === newSignal.advertisedName ? {...s, rssi: newSignal.rssi, timestamp: newSignal.timestamp} : s
+          );
         } else {
-          updatedSignals = [...prevSignals, newSignal]; // Add if new
+          updatedSignals = [...prevSignals, newSignal];
         }
         onSignalsDetected(updatedSignals);
+        toast({ title: "Simulated Signal Detected", description: `Found: ${newSignal.name}` });
         return updatedSignals;
       });
-
-
-    } catch (err: any) {
-      setStatus("error");
-      if (err.name === 'NotFoundError' || err.name === 'NotAllowedError') {
-        setError("Scan cancelled or no device selected. Bluetooth permissions may be required.");
-        toast({ title: "Scan Cancelled", description: "No device was selected or permissions denied.", variant: "default" });
-      } else {
-        setError(`Bluetooth scan error: ${err.message}`);
-        toast({ title: "Bluetooth Scan Error", description: err.message, variant: "destructive" });
-      }
-      console.error("Bluetooth scan error:", err);
-    } finally {
-      if (status === "scanning") { // If try block exited early before setting status to idle
-        setStatus("idle");
-      }
-    }
+      setStatus("idle");
+    }, 1500); // Simulate 1.5 second scan time
   };
 
 
@@ -158,29 +135,23 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
       <CardHeader>
         <CardTitle className="font-headline text-xl flex items-center gap-2">
           <Bluetooth className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-          SOS Signal Scanner
+          SOS Signal Scanner (Simulation)
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Scan for nearby Bluetooth devices. If a device advertises a name like 'SOS_Name_Lat_Lon', it will be parsed. RSSI for real devices is a placeholder.
+          Simulates scanning for nearby Bluetooth SOS signals. Device names like 'SOS_Name_Lat_Lon' are parsed. Actual Web Bluetooth scanning is limited in browsers.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button onClick={startScan} disabled={status === "scanning"} className="w-full sm:w-auto mb-4 sm:mb-6 bg-primary hover:bg-primary/90 text-sm">
-          {status === "scanning" ? (
+        <Button onClick={startScan} disabled={status === "simulating"} className="w-full sm:w-auto mb-4 sm:mb-6 bg-primary hover:bg-primary/90 text-sm">
+          {status === "simulating" ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Search className="mr-2 h-4 w-4" />
           )}
-          {status === "scanning" ? "Scanning..." : "Start New Scan"}
+          {status === "simulating" ? "Simulating Scan..." : "Start New Scan (Simulated)"}
         </Button>
         
-        {status === "unsupported" && (
-          <div className="text-destructive text-sm flex items-center gap-2 p-3 sm:p-4 bg-destructive/10 rounded-md">
-            <WifiOff className="w-5 h-5 sm:w-6 sm:h-6" /> 
-            <p>{error || "Web Bluetooth API not available."}</p>
-          </div>
-        )}
-        {status === "error" && error && (
+        {error && ( // This block might be less relevant if we fully simulate, but kept for structure
           <div className="text-destructive text-sm flex items-center gap-2 p-3 sm:p-4 bg-destructive/10 rounded-md">
             <AlertTriangleIcon className="w-5 h-5 sm:w-6 sm:h-6" /> 
             <p>{error}</p>
@@ -203,10 +174,10 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
                     )}
                      <div className="flex items-center gap-1.5 text-xs mt-0.5">
                         {getSignalStrengthIcon(signal.rssi)}
-                        <span>{getProximityText(signal.rssi)} (RSSI: {signal.rssi} dBm{signal.rssi === -65 ? " - placeholder" : ""})</span>
+                        <span>{getProximityText(signal.rssi)} (RSSI: {signal.rssi} dBm - simulated)</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {signal.advertisedName && signal.advertisedName !== signal.name ? `Advertised: ${signal.advertisedName}` : `ID: ${signal.id}`}
+                        {signal.advertisedName && signal.advertisedName !== signal.name ? `Raw Signal: ${signal.advertisedName}` : `ID: ${signal.id}`}
                       </p>
                   </div>
                   <div className="w-full sm:w-40 flex-shrink-0 mt-1 sm:mt-0">
@@ -232,10 +203,17 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
           </ul>
         ) : (
           status === "idle" && !error && ( 
-            <p className="text-muted-foreground text-sm text-center py-4">No devices detected yet. Start a scan.</p>
+            <p className="text-muted-foreground text-sm text-center py-4">No simulated signals detected yet. Start a scan.</p>
           )
+        )}
+         {status === "idle" && !navigator.bluetooth && (
+            <div className="mt-4 text-orange-600 text-xs flex items-center gap-2 p-2 bg-orange-500/10 rounded-md">
+                <WifiOff className="w-4 h-4" />
+                <span>Note: Web Bluetooth API is not available in your browser. Scanning is fully simulated.</span>
+            </div>
         )}
       </CardContent>
     </Card>
   );
 }
+
