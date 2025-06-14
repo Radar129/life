@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bluetooth, Search, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin, AlertTriangle as AlertTriangleIcon, Info, UserCircle, Trash2, Navigation } from 'lucide-react';
@@ -18,6 +18,8 @@ type ScanStatus = "idle" | "scanning" | "error";
 const LOCAL_STORAGE_SOS_KEY = 'currentR.A.D.A.R.SOSSignal';
 const LOCAL_STORAGE_VICTIM_INFO_KEY = 'victimBasicInfo';
 
+const SCAN_INTERVAL_MS = 10000; // 10 seconds for automatic refresh
+
 
 const ListItemWrapper = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <li className={`p-2 sm:p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${className}`}>{children}</li>
@@ -31,8 +33,8 @@ interface SOSScannerPanelProps {
 }
 
 export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScannerPanelProps) {
-  const [status, setStatus] = useState<ScanStatus>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [scanButtonStatus, setScanButtonStatus] = useState<ScanStatus>("idle"); // For manual button scan
+  const [error, setError] = useState<string | null>(null); // For errors shown in UI
   const { toast } = useToast();
   const [selectedVictimDetails, setSelectedVictimDetails] = useState<VictimBasicInfo | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
@@ -60,71 +62,97 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
     }
   }, []);
 
+  const performScanLogic = useCallback((isManualScan: boolean) => {
+    if (isManualScan) {
+      setScanButtonStatus("scanning");
+      setError(null);
+      toast({ title: "Refreshing Scan...", description: "Looking for active SOS signal from this device..." });
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Manual refresh scan initiated." }));
+    } else {
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Automatic check for local SOS." }));
+    }
 
-  const startScan = async () => {
-    setStatus("scanning");
-    setError(null);
-    
-    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Check for local SOS initiated." }));
-    toast({ title: "Checking Local SOS", description: "Looking for active SOS signal from this device..." });
-
+    // Simulate async nature for manual scan button feedback
     setTimeout(() => {
       const storedSignalData = localStorage.getItem(LOCAL_STORAGE_SOS_KEY);
-      let updatedSignalsList = [...detectedSignals]; 
 
-      if (storedSignalData) {
-        try {
-          const signalFromStorage: BaseDetectedSignal = JSON.parse(storedSignalData); 
-          const existingSignalIndex = updatedSignalsList.findIndex(s => s.id === signalFromStorage.id);
-          
-          const newSignalData = {
-            ...signalFromStorage,
-            rssi: -50 - Math.floor(Math.random() * 10), 
-            timestamp: Date.now(),
-          };
+      setDetectedSignals(prevDetectedSignals => {
+        let updatedSignalsList = [...prevDetectedSignals];
+        const localSignalId = 'local_sos_signal'; // ID for the signal from this device
 
-          if (existingSignalIndex !== -1) {
-            updatedSignalsList[existingSignalIndex] = {
-              ...newSignalData,
-              status: updatedSignalsList[existingSignalIndex].status && updatedSignalsList[existingSignalIndex].status !== "Signal Lost (Local)"
-                ? updatedSignalsList[existingSignalIndex].status 
-                : "Active (Local)",
+        if (storedSignalData) {
+          try {
+            const signalFromStorage: BaseDetectedSignal = JSON.parse(storedSignalData);
+            const existingSignalIndex = updatedSignalsList.findIndex(s => s.id === localSignalId);
+            
+            const newSignalData: DetectedSignal = {
+              ...signalFromStorage,
+              id: localSignalId, // Ensure consistent ID
+              rssi: -50 - Math.floor(Math.random() * 10),
+              timestamp: Date.now(),
             };
-            toast({ title: "Local SOS Signal Updated", description: `Tracking: ${signalFromStorage.name}` });
-            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Updated active local SOS for ${signalFromStorage.name}` }));
-          } else {
-            updatedSignalsList.push({
-              ...newSignalData,
-              status: "Active (Local)", 
-            });
-            toast({ title: "Local SOS Signal Found", description: `Tracking: ${signalFromStorage.name}` });
-            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Detected new active local SOS for ${signalFromStorage.name}` }));
+
+            if (existingSignalIndex !== -1) {
+              const wasPreviouslyLost = updatedSignalsList[existingSignalIndex].status === "Signal Lost (Local)";
+              updatedSignalsList[existingSignalIndex] = {
+                ...newSignalData,
+                status: "Active (Local)", 
+              };
+              if (wasPreviouslyLost && isManualScan) {
+                  toast({ title: "Local SOS Re-acquired", description: `Tracking: ${signalFromStorage.name}` });
+              }
+              // For automatic scans, avoid excessive logging for simple updates.
+              if(isManualScan || wasPreviouslyLost) {
+                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Updated active local SOS for ${signalFromStorage.name}.` }));
+              }
+            } else { // Signal found in storage, but not in current list
+              updatedSignalsList.push({
+                ...newSignalData,
+                status: "Active (Local)",
+              });
+              toast({ title: "Local SOS Signal Found", description: `Tracking: ${signalFromStorage.name}` });
+              window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Detected new active local SOS for ${signalFromStorage.name}.` }));
+            }
+          } catch (e) {
+            console.error("Error parsing signal from localStorage:", e);
+            if (isManualScan) {
+              setError("Could not read local SOS signal data.");
+              toast({ title: "Local SOS Error", description: "Could not read local SOS data. It might be corrupted.", variant: "destructive" });
+            }
+            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Error parsing local SOS data from localStorage.` }));
           }
-        } catch (e) {
-          console.error("Error parsing signal from localStorage:", e);
-          setError("Could not read local SOS signal data.");
-          toast({ title: "Local SOS Error", description: "Could not read local SOS data. It might be corrupted.", variant: "destructive" });
-          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Error parsing local SOS data from localStorage.` }));
-        }
-      } else { 
-        const existingSignalIndex = updatedSignalsList.findIndex(s => s.id === 'local_sos_signal');
-        if (existingSignalIndex !== -1) {
-          if (updatedSignalsList[existingSignalIndex].status !== "Signal Lost (Local)") {
-             updatedSignalsList[existingSignalIndex].status = "Signal Lost (Local)";
-             updatedSignalsList[existingSignalIndex].rssi = -100; 
-             toast({ title: "Local SOS Signal Lost", description: `Previously active SOS for ${updatedSignalsList[existingSignalIndex].name} is no longer broadcasting.` });
-             window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Local SOS signal previously for ${updatedSignalsList[existingSignalIndex].name} is no longer active.` }));
+        } else { // No signal in localStorage
+          const existingSignalIndex = updatedSignalsList.findIndex(s => s.id === localSignalId);
+          if (existingSignalIndex !== -1) {
+            if (updatedSignalsList[existingSignalIndex].status !== "Signal Lost (Local)") {
+              updatedSignalsList[existingSignalIndex].status = "Signal Lost (Local)";
+              updatedSignalsList[existingSignalIndex].rssi = -100;
+              toast({ title: "Local SOS Signal Lost", description: `SOS for ${updatedSignalsList[existingSignalIndex].name} is no longer broadcasting.` });
+              window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Local SOS signal for ${updatedSignalsList[existingSignalIndex].name} is no longer active.` }));
+            }
           }
-        } else {
-          toast({ title: "No Local SOS Signal", description: "No active SOS signal found from this device." });
-          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: No active local SOS signal found on this device.` }));
+          // No toast if no signal and not in memory either, UI will show "No signals"
         }
+        return updatedSignalsList;
+      });
+
+      if (isManualScan) {
+        setScanButtonStatus("idle");
       }
-      
-      setDetectedSignals(updatedSignalsList);
-      setStatus("idle");
-    }, 500);
-  };
+    }, isManualScan ? 500 : 100); // Shorter delay for auto scans
+  }, [setDetectedSignals, toast]);
+
+
+  useEffect(() => {
+    performScanLogic(true); // Initial scan on mount (verbose)
+
+    const intervalId = setInterval(() => {
+      performScanLogic(false); // Automatic periodic scan (quiet)
+    }, SCAN_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [performScanLogic]); // performScanLogic is memoized by useCallback
+
 
   const handleViewDetails = (signalId: string) => {
     const storedVictimInfoRaw = localStorage.getItem(LOCAL_STORAGE_VICTIM_INFO_KEY);
@@ -212,17 +240,17 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
             Local SOS Signal Monitor
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            Checks for an active SOS signal being broadcast by the R.A.D.A.R app on THIS device. Detected signals persist until manually removed.
+            Automatically checks for an active SOS signal from this device. Detected signals persist until manually removed. Use "Refresh Scan" for an immediate update.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={startScan} disabled={status === "scanning"} className="w-full sm:w-auto mb-4 sm:mb-6 bg-primary hover:bg-primary/90 text-sm">
-            {status === "scanning" ? (
+          <Button onClick={() => performScanLogic(true)} disabled={scanButtonStatus === "scanning"} className="w-full sm:w-auto mb-4 sm:mb-6 bg-primary hover:bg-primary/90 text-sm">
+            {scanButtonStatus === "scanning" ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Search className="mr-2 h-4 w-4" />
             )}
-            {status === "scanning" ? "Checking..." : "Check for Local SOS"}
+            {scanButtonStatus === "scanning" ? "Scanning..." : "Refresh Scan"}
           </Button>
           
           {error && (
@@ -241,6 +269,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
                       <p className="font-semibold text-sm text-foreground">
                         {signal.lat && signal.lon ? `Victim: ${signal.name}` : `Device: ${signal.name}`}
                         {signal.status === "Signal Lost (Local)" && <span className="text-xs text-destructive ml-1">(Signal Lost)</span>}
+                         {signal.status === "Active (Local)" && <span className="text-xs text-green-500 ml-1">(Active)</span>}
                       </p>
                       {signal.lat && signal.lon && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -308,11 +337,11 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
               ))}
             </ul>
           ) : (
-            status === "idle" && !error && ( 
+            scanButtonStatus === "idle" && !error && ( 
               <div className="text-muted-foreground text-sm text-center py-4 flex flex-col items-center gap-2">
                 <Info className="w-8 h-8 text-primary/70"/>
                 <p>No active local SOS signal detected.</p>
-                <p className="text-xs">Activate SOS in "User Mode" on this device, then "Check for Local SOS".</p>
+                <p className="text-xs">Activate SOS in "User Mode" on this device for it to appear here.</p>
               </div>
             )
           )}
@@ -327,3 +356,4 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
   );
 }
 
+    
