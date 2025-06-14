@@ -1,5 +1,6 @@
 
 import { AppHeader } from '@/components/layout/app-header';
+import { EmergencyContactsDialer } from '@/components/emergency/emergency-contacts-dialer';
 
 export default function MainAppLayout({
   children,
@@ -15,6 +16,8 @@ export default function MainAppLayout({
       <footer className="py-3 sm:py-4 text-center text-xs sm:text-sm text-muted-foreground border-t">
         R.A.D.A.R Emergency Response Assistant &copy; {new Date().getFullYear()}
       </footer>
+      <EmergencyContactsDialer />
     </div>
   );
 }
+
