@@ -5,6 +5,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -70,6 +71,7 @@ const basicInfoSchema = z.object({
 
 export function BasicInfoForm() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isSaved, setIsSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,6 +115,7 @@ export function BasicInfoForm() {
     });
     window.dispatchEvent(new CustomEvent('victimInfoUpdated'));
     window.dispatchEvent(new CustomEvent('newAppLog', { detail: "User information saved locally." }));
+    router.push('/'); // Redirect to homepage
   };
 
   useEffect(() => {
