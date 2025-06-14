@@ -25,7 +25,7 @@ const bloodGroupOptions = [
 ];
 
 const genderOptions = [
-  "Male", "Female", "Non-binary", "Other", "Prefer not to say"
+  "Male", "Female"
 ];
 
 const basicInfoSchema = z.object({
