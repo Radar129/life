@@ -12,8 +12,9 @@ export interface DetectedSignal {
 
 export interface VictimBasicInfo {
   name?: string;
-  age?: string;
-  gender?: string; // Added gender field
+  dob?: string; // Date of Birth, e.g., "yyyy-MM-dd"
+  age?: string; // Calculated age
+  gender?: string; 
   bloodGroup?: string;
   allergies?: string;
   medications?: string;
@@ -26,3 +27,4 @@ export interface VictimBasicInfo {
   emergencyContact3Phone?: string;
   customSOSMessage?: string;
 }
+

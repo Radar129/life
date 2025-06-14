@@ -10,11 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, MessageSquare, Save, NotebookPen, Users } from 'lucide-react'; // Added Users icon
+import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, MessageSquare, Save, NotebookPen, Users, CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { VictimBasicInfo } from '@/types/signals';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format, differenceInYears } from 'date-fns';
 
 const bloodGroupOptions = [
   "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"
@@ -26,8 +30,9 @@ const genderOptions = [
 
 const basicInfoSchema = z.object({
   name: z.string().optional(),
+  dob: z.string().optional(),
   age: z.string().optional(),
-  gender: z.string().optional(), // Added gender to schema
+  gender: z.string().optional(),
   bloodGroup: z.string().optional(),
   allergies: z.string().optional(),
   medications: z.string().optional(),
@@ -49,8 +54,9 @@ export function BasicInfoForm() {
     resolver: zodResolver(basicInfoSchema),
     defaultValues: {
       name: "",
+      dob: undefined,
       age: "",
-      gender: "", // Added gender default value
+      gender: "",
       bloodGroup: "",
       allergies: "",
       medications: "",
@@ -80,7 +86,12 @@ export function BasicInfoForm() {
     if (savedInfo) {
       try {
         const parsedInfo = JSON.parse(savedInfo) as VictimBasicInfo;
-        form.reset(parsedInfo);
+        // Ensure dob is a Date object if it exists for the calendar, or undefined
+        const formData = {
+          ...parsedInfo,
+          dob: parsedInfo.dob ? parsedInfo.dob : undefined,
+        };
+        form.reset(formData);
         setIsSaved(true); 
       } catch (e) {
         console.error("Failed to parse saved basic info", e);
@@ -89,6 +100,16 @@ export function BasicInfoForm() {
     }
   }, [form, toast]);
 
+  const handleDobChange = (date: Date | undefined) => {
+    if (date) {
+      form.setValue('dob', format(date, 'yyyy-MM-dd'));
+      const age = differenceInYears(new Date(), date);
+      form.setValue('age', age.toString());
+    } else {
+      form.setValue('dob', undefined);
+      form.setValue('age', '');
+    }
+  };
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
@@ -106,7 +127,7 @@ export function BasicInfoForm() {
           <CardContent className="space-y-4 pt-3 sm:pt-4">
             
             <p className="text-sm font-medium text-foreground">Personal Information</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"> {/* Changed sm:grid-cols-3 to sm:grid-cols-2 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="name"
@@ -120,39 +141,60 @@ export function BasicInfoForm() {
                   </FormItem>
                 )}
               />
-              <FormField
+               <FormField
                 control={form.control}
-                name="age"
+                name="dob"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel htmlFor="age" className="text-xs">Age</FormLabel>
-                    <FormControl>
-                      <Input id="age" placeholder="e.g., 30" {...field} className="text-sm"/>
-                    </FormControl>
+                  <FormItem className="flex flex-col">
+                    <FormLabel htmlFor="dob" className="text-xs">Date of Birth</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            id="dob"
+                            className={cn(
+                              "w-full justify-start text-left font-normal text-sm",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => {
+                            handleDobChange(date);
+                            // field.onChange ensures react-hook-form is aware of the change
+                            field.onChange(date ? format(date, 'yyyy-MM-dd') : undefined);
+                          }}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                          captionLayout="dropdown-buttons"
+                          fromYear={1900}
+                          toYear={new Date().getFullYear()}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
-                name="bloodGroup"
+                name="age"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor="bloodGroup" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Blood Group</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
-                      <FormControl>
-                        <SelectTrigger id="bloodGroup" className="text-sm">
-                          <SelectValue placeholder="Select blood group" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {bloodGroupOptions.map((group) => (
-                          <SelectItem key={group} value={group} className="text-sm">
-                            {group}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel htmlFor="age" className="text-xs">Calculated Age</FormLabel>
+                    <FormControl>
+                      <Input id="age" placeholder="Age" {...field} className="text-sm bg-muted/50" disabled />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -173,6 +215,30 @@ export function BasicInfoForm() {
                         {genderOptions.map((option) => (
                           <SelectItem key={option} value={option} className="text-sm">
                             {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="bloodGroup"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel htmlFor="bloodGroup" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Blood Group</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger id="bloodGroup" className="text-sm">
+                          <SelectValue placeholder="Select blood group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {bloodGroupOptions.map((group) => (
+                          <SelectItem key={group} value={group} className="text-sm">
+                            {group}
                           </SelectItem>
                         ))}
                       </SelectContent>
