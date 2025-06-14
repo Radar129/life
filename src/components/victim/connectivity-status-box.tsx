@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wifi, Bluetooth, Router as HotspotIcon, MapPin, LocateFixed, Battery, BatteryCharging, PowerOff, Clock, ShieldQuestion, Signal, SignalHigh, SignalLow, SignalMedium, Copy } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
@@ -33,6 +33,7 @@ export function ConnectivityStatusBox() {
   });
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const initialGeolocationLogDispatched = useRef(false);
 
   useEffect(() => {
     // Fetch Geolocation
@@ -49,14 +50,20 @@ export function ConnectivityStatusBox() {
             locationServicesOn: true,
             lastLocationUpdate: new Date(),
           }));
-          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Connectivity: Location services active. Coordinates: LAT ${newCoords.lat}, LON ${newCoords.lon}.`}));
+          if (!initialGeolocationLogDispatched.current) {
+            window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Connectivity: Location services active. Coordinates: LAT ${newCoords.lat}, LON ${newCoords.lon}.`}));
+            initialGeolocationLogDispatched.current = true;
+          }
         },
         (err) => {
           console.warn("Geolocation error:", err.message);
           const errorMsg = "Location access denied or unavailable. Some features may be limited.";
           setError(errorMsg);
           setStatus(prev => ({ ...prev, locationServicesOn: false, gpsCoords: undefined, lastLocationUpdate: new Date() }));
-          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Connectivity: Geolocation error - ${err.message}` }));
+          if (!initialGeolocationLogDispatched.current) {
+            window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Connectivity: Geolocation error - ${err.message}` }));
+            initialGeolocationLogDispatched.current = true;
+          }
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
@@ -64,7 +71,10 @@ export function ConnectivityStatusBox() {
       setStatus(prev => ({ ...prev, locationServicesOn: false, gpsCoords: undefined, lastLocationUpdate: new Date() }));
       const errorMsg = "Geolocation is not supported by this browser.";
       setError(errorMsg);
-      window.dispatchEvent(new CustomEvent('newAppLog', { detail: "Connectivity: Geolocation not supported by browser." }));
+      if (!initialGeolocationLogDispatched.current) {
+        window.dispatchEvent(new CustomEvent('newAppLog', { detail: "Connectivity: Geolocation not supported by browser." }));
+        initialGeolocationLogDispatched.current = true;
+      }
     }
 
     // Fetch Battery Status
@@ -162,7 +172,7 @@ export function ConnectivityStatusBox() {
           <StatusItem
             icon={<Wifi className={`w-4 h-4 ${status.wifiConnected ? 'text-green-500' : 'text-muted-foreground'}`} />}
             label="Wi-Fi"
-            value={status.wifiConnected ? `Connected (${status.wifiNetworkName || "MyNetwork"})` : "Disconnected"}
+            value={status.wifiConnected ? `Connected (${status.wifiNetworkName || "HomeNet_5G"})` : "Disconnected"}
           />
           <StatusItem icon={<HotspotIcon className={`w-4 h-4 ${status.hotspotOn ? 'text-orange-500' : 'text-muted-foreground'}`} />} label="Hotspot" value={status.hotspotOn ? "ON" : "OFF"} />
           <StatusItem icon={<LocateFixed className={`w-4 h-4 ${status.locationServicesOn ? 'text-green-500' : 'text-destructive'}`} />} label="Location Svcs" value={status.locationServicesOn ? "ON" : "OFF"} />

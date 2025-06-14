@@ -40,8 +40,7 @@ export function NotificationLogPanel() {
     return () => {
       window.removeEventListener('newAppLog', handleNewLog);
     };
-  }, []);
-
+  }, []); // Empty dependency array ensures this runs once on mount and cleans up on unmount.
 
   const handleCopyLog = () => {
     if (logs.length === 0) {
@@ -49,6 +48,7 @@ export function NotificationLogPanel() {
       return;
     }
 
+    // When copying, reverse the logs so the oldest is first in the copied text.
     let logString = "Notification & Activity Log:\n\n";
     [...logs].reverse().forEach(log => {
       logString += `${format(log.timestamp, 'PPpp')} - ${log.message}\n`;
@@ -79,7 +79,7 @@ export function NotificationLogPanel() {
         {logs.length > 0 ? (
           <ScrollArea className="h-48 sm:h-60 w-full rounded-md border p-2 sm:p-3 bg-muted/20">
             <ul className="space-y-2">
-              {logs.map((log) => (
+              {logs.map((log) => ( // Renders logs as they are in the array (newest first due to prepend)
                 <li key={log.id} className="text-xs border-b border-dashed pb-1.5 last:border-b-0">
                   <p className="font-medium text-foreground">
                     <span className="text-primary">{format(log.timestamp, 'PPpp')}</span> - {log.message}
