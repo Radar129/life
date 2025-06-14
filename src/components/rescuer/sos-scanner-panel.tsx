@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DetectedSignal as BaseDetectedSignal, VictimBasicInfo } from '@/types/signals';
 import { VictimDetailsDialog } from './victim-details-dialog';
+import { cn } from "@/lib/utils";
 
 interface DetectedSignal extends BaseDetectedSignal {
   status?: string;
@@ -31,6 +32,30 @@ interface SOSScannerPanelProps {
   detectedSignals: DetectedSignal[];
   setDetectedSignals: React.Dispatch<React.SetStateAction<DetectedSignal[]>>;
 }
+
+const getStatusColorClass = (status?: string): string => {
+  if (!status) return "text-muted-foreground";
+  switch (status) {
+    case "Active (Local)":
+      return "text-green-600 dark:text-green-400 font-medium";
+    case "Signal Lost (Local)":
+      return "text-red-600 dark:text-red-400 font-medium";
+    case "Rescued":
+      return "text-blue-600 dark:text-blue-400 font-medium";
+    case "Located":
+      return "text-yellow-600 dark:text-yellow-500 font-medium";
+    case "Assistance In Progress":
+      return "text-purple-600 dark:text-purple-400 font-medium";
+    case "No Response":
+      return "text-orange-600 dark:text-orange-400 font-medium";
+    case "False Alarm":
+      return "text-gray-500 dark:text-gray-400";
+    case "Pending":
+    default:
+      return "text-muted-foreground";
+  }
+};
+
 
 export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScannerPanelProps) {
   const [scanButtonStatus, setScanButtonStatus] = useState<ScanStatus>("idle"); // For manual button scan
@@ -69,7 +94,8 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
       toast({ title: "Refreshing Scan...", description: "Looking for active SOS signal from this device..." });
       window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Manual refresh scan initiated." }));
     } else {
-      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Automatic check for local SOS." }));
+      // For automatic scans, avoid logging every check unless something changes.
+      // window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Automatic check for local SOS." }));
     }
 
     // Simulate async nature for manual scan button feedback
@@ -78,7 +104,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
 
       setDetectedSignals(prevDetectedSignals => {
         let updatedSignalsList = [...prevDetectedSignals];
-        const localSignalId = 'local_sos_signal'; // ID for the signal from this device
+        const localSignalId = 'local_sos_signal'; 
 
         if (storedSignalData) {
           try {
@@ -87,31 +113,34 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
             
             const newSignalData: DetectedSignal = {
               ...signalFromStorage,
-              id: localSignalId, // Ensure consistent ID
+              id: localSignalId, 
               rssi: -50 - Math.floor(Math.random() * 10),
               timestamp: Date.now(),
             };
 
             if (existingSignalIndex !== -1) {
               const wasPreviouslyLost = updatedSignalsList[existingSignalIndex].status === "Signal Lost (Local)";
+              const oldStatus = updatedSignalsList[existingSignalIndex].status;
+              const currentStatusInStorage = signalFromStorage.status || "Active (Local)"; // Get status from storage if present
+
               updatedSignalsList[existingSignalIndex] = {
                 ...newSignalData,
-                status: "Active (Local)", 
+                // Preserve manually set status unless it's "Signal Lost" and now it's active again
+                status: (oldStatus === "Signal Lost (Local)" && currentStatusInStorage !== "Signal Lost (Local)") ? currentStatusInStorage : oldStatus || currentStatusInStorage,
               };
-              if (wasPreviouslyLost && isManualScan) {
-                  toast({ title: "Local SOS Re-acquired", description: `Tracking: ${signalFromStorage.name}` });
+              if (wasPreviouslyLost && currentStatusInStorage !== "Signal Lost (Local)") {
+                  if (isManualScan) toast({ title: "Local SOS Re-acquired", description: `Tracking: ${signalFromStorage.name}` });
+                  window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Re-acquired active local SOS for ${signalFromStorage.name}. Status: ${updatedSignalsList[existingSignalIndex].status}` }));
+              } else if (isManualScan) {
+                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Refreshed active local SOS for ${signalFromStorage.name}. Status: ${updatedSignalsList[existingSignalIndex].status}` }));
               }
-              // For automatic scans, avoid excessive logging for simple updates.
-              if(isManualScan || wasPreviouslyLost) {
-                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Updated active local SOS for ${signalFromStorage.name}.` }));
-              }
-            } else { // Signal found in storage, but not in current list
+            } else { 
               updatedSignalsList.push({
                 ...newSignalData,
-                status: "Active (Local)",
+                status: signalFromStorage.status || "Active (Local)",
               });
               toast({ title: "Local SOS Signal Found", description: `Tracking: ${signalFromStorage.name}` });
-              window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Detected new active local SOS for ${signalFromStorage.name}.` }));
+              window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Detected new active local SOS for ${signalFromStorage.name}. Status: ${signalFromStorage.status || "Active (Local)"}` }));
             }
           } catch (e) {
             console.error("Error parsing signal from localStorage:", e);
@@ -121,37 +150,38 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
             }
             window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Error parsing local SOS data from localStorage.` }));
           }
-        } else { // No signal in localStorage
+        } else { 
           const existingSignalIndex = updatedSignalsList.findIndex(s => s.id === localSignalId);
           if (existingSignalIndex !== -1) {
             if (updatedSignalsList[existingSignalIndex].status !== "Signal Lost (Local)") {
               updatedSignalsList[existingSignalIndex].status = "Signal Lost (Local)";
-              updatedSignalsList[existingSignalIndex].rssi = -100;
-              toast({ title: "Local SOS Signal Lost", description: `SOS for ${updatedSignalsList[existingSignalIndex].name} is no longer broadcasting.` });
-              window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Local SOS signal for ${updatedSignalsList[existingSignalIndex].name} is no longer active.` }));
+              updatedSignalsList[existingSignalIndex].rssi = -100; // Simulate very weak/lost signal
+              if (isManualScan || prevDetectedSignals[existingSignalIndex].status !== "Signal Lost (Local)") { // Only toast if status changed or manual scan
+                toast({ title: "Local SOS Signal Lost", description: `SOS for ${updatedSignalsList[existingSignalIndex].name} is no longer broadcasting.` });
+                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Local SOS signal for ${updatedSignalsList[existingSignalIndex].name} is no longer active.` }));
+              }
             }
           }
-          // No toast if no signal and not in memory either, UI will show "No signals"
         }
-        return updatedSignalsList;
+        return updatedSignalsList.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
       });
 
       if (isManualScan) {
         setScanButtonStatus("idle");
       }
-    }, isManualScan ? 500 : 100); // Shorter delay for auto scans
+    }, isManualScan ? 500 : 100); 
   }, [setDetectedSignals, toast]);
 
 
   useEffect(() => {
-    performScanLogic(true); // Initial scan on mount (verbose)
+    performScanLogic(true); 
 
     const intervalId = setInterval(() => {
-      performScanLogic(false); // Automatic periodic scan (quiet)
+      performScanLogic(false); 
     }, SCAN_INTERVAL_MS);
 
     return () => clearInterval(intervalId);
-  }, [performScanLogic]); // performScanLogic is memoized by useCallback
+  }, [performScanLogic]);
 
 
   const handleViewDetails = (signalId: string) => {
@@ -261,14 +291,14 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
           )}
 
           {detectedSignals.length > 0 ? (
-            <ul className="space-y-0.5 border rounded-md max-h-[calc(100vh-28rem)] sm:max-h-[calc(100vh-22rem)] overflow-y-auto"> {/* Adjusted max-h */}
+            <ul className="space-y-0.5 border rounded-md max-h-[calc(100vh-28rem)] sm:max-h-[calc(100vh-22rem)] overflow-y-auto">
               {detectedSignals.map((signal) => (
                 <ListItemWrapper key={signal.id}>
                   <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2 sm:gap-3">
                     <div className="flex-grow">
                       <p className="font-semibold text-sm text-foreground">
                         {signal.lat && signal.lon ? `Victim: ${signal.name}` : `Device: ${signal.name}`}
-                        {signal.status === "Signal Lost (Local)" && <span className="text-xs text-destructive ml-1">(Signal Lost)</span>}
+                        {signal.status === "Signal Lost (Local)" && <span className="text-xs text-red-500 ml-1">(Signal Lost)</span>}
                          {signal.status === "Active (Local)" && <span className="text-xs text-green-500 ml-1">(Active)</span>}
                       </p>
                       {signal.lat && signal.lon && (
@@ -310,12 +340,12 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
                           value={signal.status || "Pending"}
                           onValueChange={(value) => handleStatusChange(signal.id, value)}
                         >
-                          <SelectTrigger className="w-full text-xs h-8">
+                          <SelectTrigger className={cn("w-full text-xs h-8", getStatusColorClass(signal.status))}>
                             <SelectValue placeholder="Set Status" />
                           </SelectTrigger>
                           <SelectContent>
                             {VICTIM_STATUSES.map(stat => (
-                              <SelectItem key={stat} value={stat} className="text-xs">
+                              <SelectItem key={stat} value={stat} className={cn("text-xs", getStatusColorClass(stat))}>
                                 {stat}
                               </SelectItem>
                             ))}
@@ -355,5 +385,3 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
     </>
   );
 }
-
-    
