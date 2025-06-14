@@ -112,6 +112,7 @@ export function BasicInfoForm() {
       description: "Your information has been saved locally on this device.",
     });
     window.dispatchEvent(new CustomEvent('victimInfoUpdated'));
+    window.dispatchEvent(new CustomEvent('newAppLog', { detail: "User information saved locally." }));
   };
 
   useEffect(() => {
@@ -231,6 +232,7 @@ export function BasicInfoForm() {
     navigator.clipboard.writeText(detailsString.trim())
       .then(() => {
         toast({ title: "Details Copied", description: "Your information has been copied to the clipboard." });
+        window.dispatchEvent(new CustomEvent('newAppLog', { detail: "User details copied to clipboard." }));
       })
       .catch(err => {
         console.error("Failed to copy details: ", err);
@@ -250,6 +252,7 @@ export function BasicInfoForm() {
       description: "All your personal and emergency details have been removed from this device.",
     });
     window.dispatchEvent(new CustomEvent('victimInfoUpdated'));
+    window.dispatchEvent(new CustomEvent('newAppLog', { detail: "User information cleared from device." }));
   };
 
   const { isSubmitting, isValid, isDirty } = form.formState;

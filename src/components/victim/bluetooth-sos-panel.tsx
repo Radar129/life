@@ -32,7 +32,7 @@ export function BluetoothSOSPanel() {
       if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, status]); // Adding rebroadcastIntervalId to dependencies can cause issues with interval clearing
+  }, [searchParams, status]);
 
   const getDeviceLocation = (): Promise<{ lat: number; lon: number }> => {
     return new Promise((resolve, reject) => {
@@ -75,6 +75,8 @@ export function BluetoothSOSPanel() {
     console.log("User Info Sent:", basicInfo);
     console.log("Full SOS Message Sent:", fullMessage);
     
+    const logDetail = `SOS Signal Broadcast: LAT ${currentLocation.lat}, LON ${currentLocation.lon}.`;
+    window.dispatchEvent(new CustomEvent('newAppLog', { detail: logDetail }));
     toast({
       title: "SOS Broadcasting",
       description: `Signal sent with: LAT ${currentLocation.lat}, LON ${currentLocation.lon}.`,
@@ -83,12 +85,10 @@ export function BluetoothSOSPanel() {
 
   const startRebroadcastCountdown = (currentLocation: {lat: number, lon: number}) => {
     setCountdown(REBROADCAST_INTERVAL);
-    if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId); // Clear existing interval before starting new
+    if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId); 
     const intervalId = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
-          // It's better to fetch fresh location for rebroadcast if possible, or decide policy
-          // For now, using the location passed at the start of this countdown cycle.
           broadcastSignal(currentLocation); 
           return REBROADCAST_INTERVAL;
         }
@@ -109,10 +109,11 @@ export function BluetoothSOSPanel() {
         setRebroadcastIntervalId(null);
     }
 
-
     if (!navigator.bluetooth) {
       setStatus("unsupported");
-      setError("Web Bluetooth API is not supported by your browser. SOS broadcast cannot be initiated.");
+      const errorMsg = "Web Bluetooth API is not supported by your browser. SOS broadcast cannot be initiated.";
+      setError(errorMsg);
+      window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activation Failed: Web Bluetooth not supported.` }));
       toast({ title: "Bluetooth Error", description: "Web Bluetooth not supported. Cannot broadcast SOS.", variant: "destructive" });
       return;
     }
@@ -123,18 +124,21 @@ export function BluetoothSOSPanel() {
       
       broadcastSignal(loc); // Initial broadcast
 
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate activation delay
+      await new Promise(resolve => setTimeout(resolve, 1000)); 
 
       setIsFlashlightActive(true); 
       setIsBuzzerActive(true); 
       setStatus("active");
       startRebroadcastCountdown(loc);
+      window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activated. Broadcasting from LAT ${loc.lat}, LON ${loc.lon}. Alerts enabled.` }));
       toast({ title: "SOS Active", description: "Your SOS signal and alerts are active. Rebroadcasting periodically.", variant: "default" });
 
     } catch (err: any) {
       setStatus("error");
-      setError(err.message || "Failed to activate SOS.");
-      toast({ title: "SOS Activation Failed", description: err.message || "Could not activate SOS.", variant: "destructive" });
+      const errorMsg = err.message || "Failed to activate SOS.";
+      setError(errorMsg);
+      window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activation Failed: ${errorMsg}` }));
+      toast({ title: "SOS Activation Failed", description: errorMsg, variant: "destructive" });
     }
   };
 
@@ -147,6 +151,7 @@ export function BluetoothSOSPanel() {
     if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId);
     setRebroadcastIntervalId(null);
     setCountdown(0);
+    window.dispatchEvent(new CustomEvent('newAppLog', { detail: "SOS Deactivated. Alerts stopped." }));
     toast({ title: "SOS Deactivated", description: "SOS broadcast and alerts have been stopped." });
   };
 
@@ -178,7 +183,7 @@ export function BluetoothSOSPanel() {
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center space-y-3 py-4 sm:py-6">
-        <div className={`flex justify-center items-center`}> {/* Color class removed from here to apply specifically to text */}
+        <div className={`flex justify-center items-center`}>
           {icon}
         </div>
         <p className={`text-base sm:text-lg font-semibold ${color} px-2`}>{text}</p>

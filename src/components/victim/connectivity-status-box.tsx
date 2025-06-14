@@ -39,26 +39,32 @@ export function ConnectivityStatusBox() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          const newCoords = {
+            lat: parseFloat(position.coords.latitude.toFixed(4)),
+            lon: parseFloat(position.coords.longitude.toFixed(4)),
+          };
           setStatus(prev => ({
             ...prev,
-            gpsCoords: {
-              lat: parseFloat(position.coords.latitude.toFixed(4)),
-              lon: parseFloat(position.coords.longitude.toFixed(4)),
-            },
+            gpsCoords: newCoords,
             locationServicesOn: true,
             lastLocationUpdate: new Date(),
           }));
+          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Connectivity: Location services active. Coordinates: LAT ${newCoords.lat}, LON ${newCoords.lon}.`}));
         },
         (err) => {
           console.warn("Geolocation error:", err.message);
-          setError("Location access denied or unavailable. Some features may be limited.");
+          const errorMsg = "Location access denied or unavailable. Some features may be limited.";
+          setError(errorMsg);
           setStatus(prev => ({ ...prev, locationServicesOn: false, gpsCoords: undefined, lastLocationUpdate: new Date() }));
+          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Connectivity: Geolocation error - ${err.message}` }));
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
     } else {
       setStatus(prev => ({ ...prev, locationServicesOn: false, gpsCoords: undefined, lastLocationUpdate: new Date() }));
-      setError("Geolocation is not supported by this browser.");
+      const errorMsg = "Geolocation is not supported by this browser.";
+      setError(errorMsg);
+      window.dispatchEvent(new CustomEvent('newAppLog', { detail: "Connectivity: Geolocation not supported by browser." }));
     }
 
     // Fetch Battery Status
@@ -122,6 +128,7 @@ export function ConnectivityStatusBox() {
       navigator.clipboard.writeText(coordsText)
         .then(() => {
           toast({ title: "Coordinates Copied", description: coordsText });
+          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `GPS Coordinates copied: ${coordsText}` }));
         })
         .catch(err => {
           console.error("Failed to copy coordinates: ", err);
@@ -208,7 +215,7 @@ const StatusItem = ({ icon, label, value, children }: { icon: React.ReactNode, l
       {icon}
       <span className="font-medium text-foreground">{label}:</span>
     </div>
-    <p className="text-muted-foreground ml-[calc(1rem+0.375rem)] break-words">{value}</p> {/* 1rem for icon, 0.375rem for gap */}
+    <p className="text-muted-foreground ml-[calc(1rem+0.375rem)] break-words">{value}</p> 
     {children && <div className="ml-[calc(1rem+0.375rem)]">{children}</div>}
   </div>
 );
