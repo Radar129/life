@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SOSScannerPanel } from '@/components/rescuer/sos-scanner-panel';
 import { MapDisplayPanel } from '@/components/rescuer/map-display-panel';
 import { RescuerAdvicePanel } from '@/components/rescuer/rescuer-advice-panel';
+import { RescuerLogPanel } from '@/components/rescuer/rescuer-log-panel'; // Import new component
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +17,7 @@ interface DetectedSignal {
   lat?: number;
   lon?: number;
   timestamp: number;
-  status?: string; // Added status for victim
+  status?: string; 
   advertisedName?: string;
 }
 
@@ -35,8 +36,10 @@ export default function RescuerPage() {
         toast({ title: "Authentication Required", description: "Please log in to access the rescuer dashboard.", variant: "destructive"});
       } else {
         setIsAuthenticated(true);
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Dashboard: Authenticated and loaded." }));
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, toast]); 
 
   const handleSignalsDetected = (signals: DetectedSignal[]) => {
@@ -48,7 +51,8 @@ export default function RescuerPage() {
         localStorage.removeItem('isRescuerAuthenticated');
     }
     toast({ title: "Logged Out", description: "You have been successfully logged out." });
-    router.replace('/'); // Changed from /rescuer/login to /
+    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Dashboard: Logged out." }));
+    router.replace('/'); 
   };
 
   if (!isAuthenticated) {
@@ -75,9 +79,13 @@ export default function RescuerPage() {
           <SOSScannerPanel onSignalsDetected={handleSignalsDetected} detectedSignals={detectedSignals} setDetectedSignals={setDetectedSignals}/>
           <MapDisplayPanel signals={detectedSignals} />
         </div>
-        <div className="lg:sticky lg:top-[calc(4rem+1.5rem)]"> {/* Header (4rem) + main top padding (1.5rem from py-6) */}
+        <div className="lg:sticky lg:top-[calc(4rem+1.5rem)] space-y-4 sm:space-y-6"> {/* Added space-y here */}
           <RescuerAdvicePanel />
+          {/* RescuerLogPanel was here, moved below the grid for full width */}
         </div>
+      </div>
+      <div className="mt-6"> {/* New section for the log panel */}
+         <RescuerLogPanel />
       </div>
     </div>
   );

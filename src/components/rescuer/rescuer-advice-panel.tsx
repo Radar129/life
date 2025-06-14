@@ -37,13 +37,18 @@ export function RescuerAdvicePanel() {
     setIsLoading(true);
     setAdvice(null);
     setError(null);
+    const scenePreview = data.sceneInformation.substring(0, 50) + (data.sceneInformation.length > 50 ? "..." : "");
+    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Rescuer Advice: Requesting advice for scene: "${scenePreview}".` }));
     try {
       const input: RescuerAdviceInput = { sceneInformation: data.sceneInformation };
       const result = await getRescuerAdvice(input);
       setAdvice(result);
-    } catch (e) {
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Advice: Advice successfully received." }));
+    } catch (e: any) {
       console.error("Error getting rescuer advice:", e);
-      setError("Failed to get advice. Please try again.");
+      const errorMsg = e.message || "Failed to get advice. Please try again.";
+      setError(errorMsg);
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Rescuer Advice: Error receiving advice - ${errorMsg}.` }));
     } finally {
       setIsLoading(false);
     }
@@ -135,8 +140,6 @@ export function RescuerAdvicePanel() {
   );
 }
 
-
-// Helper (dummy) AlertTriangle, if not importing from lucide-react for Alert component
 const AlertTriangle = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>

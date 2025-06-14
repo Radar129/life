@@ -48,6 +48,7 @@ export function RescuerProfileForm() {
       description: "Your rescuer profile has been saved locally.",
     });
     window.dispatchEvent(new CustomEvent('rescuerInfoUpdated'));
+    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Rescuer Profile: Profile saved/updated for ${data.name || 'N/A'}.` }));
   };
 
   useEffect(() => {
@@ -86,6 +87,7 @@ export function RescuerProfileForm() {
       reader.onloadend = () => {
         form.setValue('profilePictureDataUrl', reader.result as string, { shouldValidate: true, shouldDirty: true });
         setIsSaved(false);
+         window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Rescuer Profile: Photo changed.` }));
       };
       reader.readAsDataURL(file);
     }
@@ -97,6 +99,7 @@ export function RescuerProfileForm() {
         fileInputRef.current.value = "";
     }
     setIsSaved(false);
+    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Rescuer Profile: Photo removed.` }));
   };
 
   const handleCopyDetails = () => {
@@ -110,6 +113,7 @@ export function RescuerProfileForm() {
     navigator.clipboard.writeText(detailsString.trim())
       .then(() => {
         toast({ title: "Details Copied", description: "Rescuer profile information copied to clipboard." });
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Rescuer Profile: Details copied to clipboard.` }));
       })
       .catch(err => {
         console.error("Failed to copy rescuer details: ", err);
@@ -129,6 +133,7 @@ export function RescuerProfileForm() {
       description: "Rescuer profile information has been removed.",
     });
     window.dispatchEvent(new CustomEvent('rescuerInfoUpdated'));
+    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Rescuer Profile: Profile cleared.` }));
   };
 
   const { isSubmitting, isValid, isDirty } = form.formState;

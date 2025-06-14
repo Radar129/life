@@ -42,11 +42,12 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setRescuerLocation({
+          const newLoc = {
             lat: parseFloat(position.coords.latitude.toFixed(4)),
             lon: parseFloat(position.coords.longitude.toFixed(4)),
-          });
-          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Rescuer location obtained: LAT ${position.coords.latitude.toFixed(4)}, LON ${position.coords.longitude.toFixed(4)}` }));
+          };
+          setRescuerLocation(newLoc);
+          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Rescuer location obtained: LAT ${newLoc.lat}, LON ${newLoc.lon}` }));
         },
         () => {
           console.warn("Could not get rescuer location for SOS Scanner.");
@@ -145,8 +146,9 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
   };
 
   const handleStatusChange = (signalId: string, newStatus: string) => {
-    const updatedSignals = detectedSignals.map(signal =>
-      signal.id === signalId ? { ...signal, status: newStatus } : signal
+    const signal = detectedSignals.find(s => s.id === signalId);
+    const updatedSignals = detectedSignals.map(s =>
+      s.id === signalId ? { ...s, status: newStatus } : s
     );
     setDetectedSignals(updatedSignals);
 
@@ -162,7 +164,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
             }
         }
     }
-    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Updated status for signal ${signalId} to ${newStatus}.` }));
+    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Updated status for victim ${signal?.name || signalId} to ${newStatus}.` }));
   };
 
   const handleRemoveSignal = (signalIdToRemove: string) => {
@@ -173,14 +175,14 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
     window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Manually removed signal ${signalToRemove?.name || signalIdToRemove} from the list.` }));
   };
 
-  const openGoogleMapsDirections = (victimLat: number, victimLon: number) => {
+  const openGoogleMapsDirections = (victimLat: number, victimLon: number, victimName?: string) => {
     let url: string;
     if (rescuerLocation) {
       url = `https://www.google.com/maps/dir/?api=1&origin=${rescuerLocation.lat},${rescuerLocation.lon}&destination=${victimLat},${victimLon}&travelmode=driving`;
-      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Opening Google Maps directions from ${rescuerLocation.lat},${rescuerLocation.lon} to ${victimLat},${victimLon}.` }));
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Opening Google Maps directions for ${victimName || 'victim'} from ${rescuerLocation.lat},${rescuerLocation.lon} to ${victimLat},${victimLon}.` }));
     } else {
       url = `https://www.google.com/maps/search/?api=1&query=${victimLat},${victimLon}`;
-      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Opening Google Maps for victim at ${victimLat},${victimLon} (rescuer location unavailable).` }));
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Opening Google Maps for ${victimName || 'victim'} at ${victimLat},${victimLon} (rescuer location unavailable).` }));
       console.warn("Rescuer location not available for directions, opening victim location directly.");
     }
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -231,7 +233,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
           )}
 
           {detectedSignals.length > 0 ? (
-            <ul className="space-y-0.5 border rounded-md max-h-[calc(100vh-25rem)] sm:max-h-[calc(100vh-20rem)] overflow-y-auto">
+            <ul className="space-y-0.5 border rounded-md max-h-[calc(100vh-28rem)] sm:max-h-[calc(100vh-22rem)] overflow-y-auto"> {/* Adjusted max-h */}
               {detectedSignals.map((signal) => (
                 <ListItemWrapper key={signal.id}>
                   <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2 sm:gap-3">
@@ -266,7 +268,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openGoogleMapsDirections(signal.lat!, signal.lon!)}
+                            onClick={() => openGoogleMapsDirections(signal.lat!, signal.lon!, signal.name)}
                             className="text-xs h-8 w-full sm:w-auto flex-shrink-0"
                             disabled={!signal.lat || !signal.lon}
                         >

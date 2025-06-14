@@ -18,10 +18,9 @@ interface MapDisplayPanelProps {
   signals: Signal[];
 }
 
-// Default coordinates (e.g., Los Angeles) for when no specific location is available
 const DEFAULT_LAT = 34.0522;
 const DEFAULT_LON = -118.2437;
-const DEFAULT_ZOOM_BOX_SIZE = 0.1; // For bounding box when only one point or default is shown
+const DEFAULT_ZOOM_BOX_SIZE = 0.1; 
 
 export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
   const [rescuerLocation, setRescuerLocation] = useState<{ lat: number; lon: number } | null>(null);
@@ -31,25 +30,28 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setRescuerLocation({
+          const newLoc = {
             lat: parseFloat(position.coords.latitude.toFixed(4)),
             lon: parseFloat(position.coords.longitude.toFixed(4)),
-          });
+          };
+          setRescuerLocation(newLoc);
+           window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Map Display: Rescuer location obtained: LAT ${newLoc.lat}, LON ${newLoc.lon}` }));
         },
         () => {
           console.warn("Could not get rescuer location. Using default for map centering if needed.");
-          // Rescuer location remains null, map will center based on victims or default
+          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Map Display: Could not get rescuer location." }));
         }
       );
     } else {
        console.warn("Geolocation is not supported by this browser.");
+       window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Map Display: Geolocation not supported by browser." }));
     }
   }, []);
 
   useEffect(() => {
     const firstVictimWithLocation = signals.find(s => s.lat !== undefined && s.lon !== undefined);
 
-    let bbox: [number, number, number, number] | null = null; // minLon, minLat, maxLon, maxLat
+    let bbox: [number, number, number, number] | null = null; 
     let markerLat: number | null = null;
     let markerLon: number | null = null;
 
@@ -64,12 +66,12 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
         const maxLat = Math.max(...lats);
         const minLon = Math.min(...lons);
         const maxLon = Math.max(...lons);
-        // Add some padding to the bounding box
+        
         const latPadding = (maxLat - minLat) * 0.2 || DEFAULT_ZOOM_BOX_SIZE / 2;
         const lonPadding = (maxLon - minLon) * 0.2 || DEFAULT_ZOOM_BOX_SIZE / 2;
         bbox = [minLon - lonPadding, minLat - latPadding, maxLon + lonPadding, maxLat + latPadding];
       } else {
-        // Only victim location
+        
         bbox = [
           firstVictimWithLocation.lon - DEFAULT_ZOOM_BOX_SIZE / 2,
           firstVictimWithLocation.lat - DEFAULT_ZOOM_BOX_SIZE / 2,
@@ -78,7 +80,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
         ];
       }
     } else if (rescuerLocation) {
-      // Only rescuer location
+      
       bbox = [
         rescuerLocation.lon - DEFAULT_ZOOM_BOX_SIZE / 2,
         rescuerLocation.lat - DEFAULT_ZOOM_BOX_SIZE / 2,
@@ -86,7 +88,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
         rescuerLocation.lat + DEFAULT_ZOOM_BOX_SIZE / 2,
       ];
     } else {
-      // Default view
+      
       bbox = [
         DEFAULT_LON - DEFAULT_ZOOM_BOX_SIZE,
         DEFAULT_LAT - DEFAULT_ZOOM_BOX_SIZE,
@@ -103,12 +105,14 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
 
   }, [signals, rescuerLocation]);
 
-  const openGoogleMapsDirections = (victimLat: number, victimLon: number) => {
+  const openGoogleMapsDirections = (victimLat: number, victimLon: number, victimName?: string) => {
     if (rescuerLocation) {
       const url = `https://www.google.com/maps/dir/?api=1&origin=${rescuerLocation.lat},${rescuerLocation.lon}&destination=${victimLat},${victimLon}&travelmode=driving`;
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Map Display: Opening Google Maps directions for ${victimName || 'victim'} from ${rescuerLocation.lat},${rescuerLocation.lon} to ${victimLat},${victimLon}.` }));
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
       const url = `https://www.google.com/maps/search/?api=1&query=${victimLat},${victimLon}`;
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Map Display: Opening Google Maps for ${victimName || 'victim'} at ${victimLat},${victimLon} (rescuer location unavailable).` }));
       window.open(url, '_blank', 'noopener,noreferrer');
       console.warn("Rescuer location not available, opening victim location directly.");
     }
@@ -163,7 +167,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openGoogleMapsDirections(s.lat!, s.lon!)}
+                      onClick={() => openGoogleMapsDirections(s.lat!, s.lon!, s.name)}
                       className="ml-2 text-xs h-7 sm:h-8"
                       disabled={!s.lat || !s.lon}
                     >

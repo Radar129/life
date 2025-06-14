@@ -5,17 +5,14 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-// import { useToast } from '@/hooks/use-toast'; // Removed useToast import
 
 export default function RescuerLoginPage() {
   const router = useRouter();
-  // const { toast } = useToast(); // Removed toast usage
 
   useEffect(() => {
-    // Automatically "log in" the rescuer and redirect
     if (typeof window !== 'undefined') {
       localStorage.setItem('isRescuerAuthenticated', 'true');
-      // toast({ title: "Access Granted", description: "Redirecting to Rescuer Dashboard..." }); // Removed toast call
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Login: Access granted. Redirecting to dashboard." }));
       router.replace('/rescuer');
     }
   }, [router]);
