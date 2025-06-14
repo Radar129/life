@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, CheckCircle, Bluetooth, XCircle, Loader2, Zap, Volume2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import type { VictimBasicInfo } from '@/types/signals';
 
 type SOSStatus = "inactive" | "activating" | "active" | "error" | "unsupported";
 
@@ -18,12 +19,19 @@ export function BluetoothSOSPanel() {
   const [isBuzzerActive, setIsBuzzerActive] = useState(false);
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const [countdown, setCountdown] = useState(0);
+  const [rebroadcastIntervalId, setRebroadcastIntervalId] = useState<NodeJS.Timeout | null>(null);
+
+  const REBROADCAST_INTERVAL = 30; // seconds
 
   useEffect(() => {
     if (searchParams.get('sos') === 'true' && status === "inactive") {
       activateSOS();
     }
-  }, [searchParams, status]);
+    return () => {
+      if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId);
+    };
+  }, [searchParams, status, rebroadcastIntervalId]);
 
   const getDeviceLocation = (): Promise<{ lat: number; lon: number }> => {
     return new Promise((resolve, reject) => {
@@ -45,11 +53,55 @@ export function BluetoothSOSPanel() {
     });
   };
 
+  const broadcastSignal = (currentLocation: { lat: number; lon: number }) => {
+    const storedBasicInfo = localStorage.getItem('victimBasicInfo');
+    let basicInfo: VictimBasicInfo | null = null;
+    let sosMessage = "Emergency! I need help. My location is being broadcast.";
+
+    if (storedBasicInfo) {
+      try {
+        basicInfo = JSON.parse(storedBasicInfo);
+        if (basicInfo?.customSOSMessage) {
+          sosMessage = basicInfo.customSOSMessage;
+        }
+      } catch (e) {
+        console.error("Could not parse victim basic info from localStorage", e);
+      }
+    }
+    
+    const fullMessage = `${sosMessage} Location: LAT ${currentLocation.lat}, LON ${currentLocation.lon}.`;
+    console.log(`Simulating SOS broadcast. Device name format: SOS_${currentLocation.lat}_${currentLocation.lon}`);
+    console.log("User Info (Simulated Send):", basicInfo);
+    console.log("Full SOS Message (Simulated Send):", fullMessage);
+    
+    toast({
+      title: "SOS Broadcasting",
+      description: `Signal sent with: LAT ${currentLocation.lat}, LON ${currentLocation.lon}. (Simulated)`,
+    });
+  };
+
+  const startRebroadcastCountdown = (currentLocation: {lat: number, lon: number}) => {
+    setCountdown(REBROADCAST_INTERVAL);
+    const intervalId = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          broadcastSignal(currentLocation); // Re-fetch location or use last known if this is intended
+          return REBROADCAST_INTERVAL;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    setRebroadcastIntervalId(intervalId);
+  };
+
+
   const activateSOS = async () => {
     setStatus("activating");
     setError(null);
     setIsFlashlightActive(false);
     setIsBuzzerActive(false);
+    if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId);
+
 
     if (!navigator.bluetooth) {
       setStatus("unsupported");
@@ -62,18 +114,15 @@ export function BluetoothSOSPanel() {
       const loc = await getDeviceLocation();
       setLocation(loc);
       
-      console.log(`Simulating SOS broadcast. Device name format: SOS_${loc.lat}_${loc.lon}`);
-      toast({
-        title: "SOS Activating",
-        description: `Attempting to broadcast SOS with location: LAT ${loc.lat}, LON ${loc.lon}. (Simulated Bluetooth broadcast)`,
-      });
+      broadcastSignal(loc); // Initial broadcast
 
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate activation delay
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate activation delay
 
-      setIsFlashlightActive(true); // Simulate flashlight activation
-      setIsBuzzerActive(true); // Simulate buzzer activation
+      setIsFlashlightActive(true); 
+      setIsBuzzerActive(true); 
       setStatus("active");
-      toast({ title: "SOS Active", description: "Your SOS signal and alerts are active (simulated).", variant: "default" });
+      startRebroadcastCountdown(loc);
+      toast({ title: "SOS Active", description: "Your SOS signal and alerts are active (simulated). Rebroadcasting periodically.", variant: "default" });
 
     } catch (err: any) {
       setStatus("error");
@@ -88,13 +137,16 @@ export function BluetoothSOSPanel() {
     setLocation(null);
     setIsFlashlightActive(false);
     setIsBuzzerActive(false);
+    if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId);
+    setRebroadcastIntervalId(null);
+    setCountdown(0);
     toast({ title: "SOS Deactivated", description: "SOS broadcast and alerts have been stopped." });
   };
 
   const getStatusContent = () => {
     switch (status) {
       case "inactive":
-        return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground" />, text: "SOS is Inactive.", color: "text-muted-foreground" };
+        return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground" />, text: "SOS is OFF.", color: "text-muted-foreground" };
       case "activating":
         return { icon: <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-primary animate-spin" />, text: "Activating SOS...", color: "text-primary" };
       case "active":
@@ -104,37 +156,40 @@ export function BluetoothSOSPanel() {
       case "unsupported":
         return { icon: <Bluetooth className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: "Bluetooth not supported by browser.", color: "text-destructive" };
       default:
-        return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground" />, text: "SOS is Inactive.", color: "text-muted-foreground" };
+        return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground" />, text: "SOS is OFF.", color: "text-muted-foreground" };
     }
   };
 
   const { icon, text, color } = getStatusContent();
 
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-xl">
+    <Card className="w-full max-w-2xl mx-auto shadow-xl">
       <CardHeader>
-        <CardTitle className="font-headline text-xl sm:text-2xl text-center">Victim SOS Mode</CardTitle>
+        <CardTitle className="font-headline text-xl sm:text-2xl text-center">SOS Alert Box</CardTitle>
         <CardDescription className="text-center text-xs sm:text-sm">
           Broadcast your location and activate alerts. (Simulated for web environment)
         </CardDescription>
       </CardHeader>
-      <CardContent className="text-center space-y-4 py-6 sm:py-10">
+      <CardContent className="text-center space-y-3 py-4 sm:py-6">
         <div className={`flex justify-center items-center ${color}`}>
           {icon}
         </div>
         <p className={`text-base sm:text-lg font-semibold ${color} px-2`}>{text}</p>
         
         {status === "active" && (
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center justify-center gap-1.5 text-sm text-green-500">
-              <Zap className="w-4 h-4" /> <span>Flashlight Blinking (Simulated)</span>
+          <div className="space-y-1 pt-1">
+            <div className="flex items-center justify-center gap-1.5 text-xs text-green-500">
+              <Zap className="w-3 h-3" /> <span>Flashlight Blinking (Simulated)</span>
             </div>
-            <div className="flex items-center justify-center gap-1.5 text-sm text-green-500">
-              <Volume2 className="w-4 h-4" /> <span>SOS Buzzer Active (Simulated)</span>
+            <div className="flex items-center justify-center gap-1.5 text-xs text-green-500">
+              <Volume2 className="w-3 h-3" /> <span>SOS Buzzer Active (Simulated)</span>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground pt-2">
-              Rescuers nearby may detect your signal.
+            <p className="text-xs text-muted-foreground pt-1">
+              Rebroadcasting signal in: <span className="font-semibold text-primary">{countdown}s</span>
             </p>
+             <p className="text-xs text-muted-foreground mt-2">
+            Rescuers nearby may detect your signal.
+          </p>
           </div>
         )}
 
@@ -144,15 +199,15 @@ export function BluetoothSOSPanel() {
           </p>
         )}
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 p-4 sm:p-6 border-t">
+      <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 p-4 border-t">
         {status !== "active" && status !== "activating" && (
-          <Button onClick={activateSOS} size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/80 text-accent-foreground text-sm sm:text-base">
-            <AlertTriangle className="mr-2 h-4 sm:h-5 w-4 sm:w-5" /> Activate SOS
+          <Button onClick={activateSOS} size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/80 text-accent-foreground text-sm sm:text-base py-3 h-14">
+            <AlertTriangle className="mr-2 h-5 w-5" /> ACTIVATE SOS
           </Button>
         )}
         {(status === "active" || status === "activating") && (
-          <Button onClick={deactivateSOS} variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base">
-            <XCircle className="mr-2 h-4 sm:h-5 w-4 sm:w-5" /> Deactivate SOS
+          <Button onClick={deactivateSOS} variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base py-3 h-14">
+            <XCircle className="mr-2 h-5 w-5" /> Deactivate SOS
           </Button>
         )}
       </CardFooter>

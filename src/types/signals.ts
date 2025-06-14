@@ -7,5 +7,21 @@ export interface DetectedSignal {
   lat?: number;
   lon?: number;
   timestamp: number;
-  status?: string; // Optional: status of the victim/signal
+  status?: string; 
+}
+
+export interface VictimBasicInfo {
+  name?: string;
+  age?: string;
+  bloodGroup?: string;
+  allergies?: string;
+  medications?: string;
+  conditions?: string;
+  emergencyContact1Name?: string;
+  emergencyContact1Phone?: string;
+  emergencyContact2Name?: string;
+  emergencyContact2Phone?: string;
+  emergencyContact3Name?: string;
+  emergencyContact3Phone?: string;
+  customSOSMessage?: string;
 }
