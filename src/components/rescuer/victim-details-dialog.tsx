@@ -1,6 +1,7 @@
 
 "use client";
 
+import * as React from 'react'; // Added React import
 import type { VictimBasicInfo } from '@/types/signals';
 import {
   Dialog,
