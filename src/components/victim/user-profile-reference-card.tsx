@@ -5,52 +5,76 @@ import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from 'lucide-react';
 import type { VictimBasicInfo } from '@/types/signals';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card'; // Removed CardHeader and CardTitle
 
 export function UserProfileReferenceCard() {
   const [userInfo, setUserInfo] = useState<VictimBasicInfo | null>(null);
 
   const loadUserInfo = () => {
-    const savedInfo = localStorage.getItem('victimBasicInfo');
-    if (savedInfo) {
-      try {
-        setUserInfo(JSON.parse(savedInfo) as VictimBasicInfo);
-      } catch (e) {
-        console.error("Failed to parse basic info for reference card", e);
-        setUserInfo(null); // Clear if parsing fails
+    if (typeof window !== 'undefined') {
+      const savedInfo = localStorage.getItem('victimBasicInfo');
+      if (savedInfo) {
+        try {
+          setUserInfo(JSON.parse(savedInfo) as VictimBasicInfo);
+        } catch (e) {
+          console.error("Failed to parse basic info for reference card", e);
+          setUserInfo(null);
+        }
+      } else {
+        setUserInfo(null);
       }
-    } else {
-      setUserInfo(null); // Clear if no info found
     }
   };
 
   useEffect(() => {
-    loadUserInfo(); // Initial load
+    loadUserInfo();
 
-    // Listen for custom event dispatched when victim info is updated
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'victimBasicInfo') {
+        loadUserInfo();
+      }
+    };
+    
     window.addEventListener('victimInfoUpdated', loadUserInfo);
-    // Listen for direct localStorage changes from other tabs/windows
-    window.addEventListener('storage', loadUserInfo);
-
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
       window.removeEventListener('victimInfoUpdated', loadUserInfo);
-      window.removeEventListener('storage', loadUserInfo);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
-
   if (!userInfo) {
-    // Optional: Can render a placeholder or nothing if no info is available or needed
-    return null; 
+    return (
+        <Card className="w-full max-w-2xl mx-auto shadow-md">
+            <CardContent className="flex items-center space-x-3 p-3">
+                 <Avatar className="w-12 h-12 border-2 border-primary">
+                    <AvatarFallback>
+                        <User className="w-6 h-6" />
+                    </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col justify-center">
+                    <p className="font-semibold text-sm text-foreground">User Profile</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                        Please set up your profile in the user details.
+                    </p>
+                </div>
+            </CardContent>
+        </Card>
+    );
   }
+
+  const isInfoComplete = !!(
+    userInfo.name && userInfo.name.trim() !== "" &&
+    userInfo.age && userInfo.age.trim() !== "" &&
+    userInfo.bloodGroup && userInfo.bloodGroup.trim() !== ""
+  );
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-md">
-      {/* Removed CardHeader for a more compact look, title can be implicit */}
       <CardContent className="flex items-center space-x-3 p-3">
         <Avatar className="w-12 h-12 border-2 border-primary">
-          <AvatarImage src={userInfo.profilePictureDataUrl || ''} alt={userInfo.name || 'User'} />
+          <AvatarImage src={userInfo.profilePictureDataUrl || undefined} alt={userInfo.name || 'User'} />
           <AvatarFallback>
             <User className="w-6 h-6" />
           </AvatarFallback>
@@ -60,9 +84,12 @@ export function UserProfileReferenceCard() {
                 {userInfo.name || 'User Profile'}
             </p>
             <p className="text-xs text-muted-foreground">
-                {/* Example: Display age or blood group if available */}
-                {/* {userInfo.age && `Age: ${userInfo.age}`} {userInfo.bloodGroup && `(${userInfo.bloodGroup})`} */}
-                Basic info is up-to-date.
+              Age: {userInfo.age || 'N/A'} | Blood Group: {userInfo.bloodGroup || 'N/A'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isInfoComplete
+                ? 'Your basic information is up-to-date.'
+                : 'Please complete your profile in the user details.'}
             </p>
         </div>
       </CardContent>
