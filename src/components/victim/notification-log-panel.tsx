@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ListChecks, Copy } from 'lucide-react';
@@ -17,19 +17,34 @@ interface LogEntry {
 export function NotificationLogPanel() {
   const { toast } = useToast();
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [isClientLoaded, setIsClientLoaded] = useState(false);
+  const logIdCounter = useRef(0); // For generating unique log IDs
 
   useEffect(() => {
-    // Generate logs on the client side after mount to avoid hydration mismatch
-    const generatedLogs: LogEntry[] = [
-      { id: 1, timestamp: new Date(Date.now() - 5 * 60000), message: "SOS Activated. Location: 34.05N, 118.24W." },
-      { id: 2, timestamp: new Date(Date.now() - 4 * 60000), message: "Connectivity Change: Wi-Fi disconnected." },
-      { id: 3, timestamp: new Date(Date.now() - 3 * 60000), message: "Battery Alert: Low (15%)." },
-      { id: 4, timestamp: new Date(Date.now() - 2 * 60000), message: "Emergency contact 'John Doe' notified." },
-      { id: 5, timestamp: new Date(Date.now() - 1 * 60000), message: "SOS Signal Rebroadcast." },
-    ];
-    setLogs(generatedLogs);
-    setIsClientLoaded(true); // Signal that client-side specific logic has run
+    const handleNewLog = (event: Event) => {
+      const customEvent = event as CustomEvent<string>; // Assuming detail is a string message
+      if (typeof customEvent.detail === 'string') {
+        setLogs(prevLogs => [
+          {
+            id: logIdCounter.current++,
+            timestamp: new Date(),
+            message: customEvent.detail,
+          },
+          ...prevLogs, // Add new logs to the top
+        ]);
+      }
+    };
+
+    window.addEventListener('newAppLog', handleNewLog);
+
+    // Example: Dispatch a log when the panel loads (for testing, can be removed)
+    // setTimeout(() => {
+    //   window.dispatchEvent(new CustomEvent('newAppLog', { detail: "Notification panel initialized." }));
+    // }, 1000);
+
+
+    return () => {
+      window.removeEventListener('newAppLog', handleNewLog);
+    };
   }, []);
 
 
@@ -40,7 +55,8 @@ export function NotificationLogPanel() {
     }
 
     let logString = "Notification & Activity Log:\n\n";
-    logs.forEach(log => {
+    // Iterate in reverse to copy logs from oldest to newest for readability
+    [...logs].reverse().forEach(log => {
       logString += `${log.timestamp.toLocaleString()} - ${log.message}\n`;
     });
 
@@ -66,7 +82,7 @@ export function NotificationLogPanel() {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-3 sm:pt-4">
-        {isClientLoaded && logs.length > 0 ? (
+        {logs.length > 0 ? (
           <ScrollArea className="h-48 sm:h-60 w-full rounded-md border p-2 sm:p-3 bg-muted/20">
             <ul className="space-y-2">
               {logs.map((log) => (
@@ -83,7 +99,7 @@ export function NotificationLogPanel() {
           </ScrollArea>
         ) : (
           <p className="text-sm text-muted-foreground text-center py-4">
-            {!isClientLoaded ? '(Loading logs...)' : 'No activity logged yet.'}
+            No activity logged yet.
           </p>
         )}
       </CardContent>
@@ -95,4 +111,3 @@ export function NotificationLogPanel() {
     </Card>
   );
 }
-
