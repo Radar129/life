@@ -178,7 +178,7 @@ export function BasicInfoForm() {
         const contactName = details[`emergencyContact${i}Name` as keyof VictimBasicInfo];
         const contactPhone = details[`emergencyContact${i}Phone` as keyof VictimBasicInfo];
         
-        if (contactName || contactPhone) { // Only add contact if name or phone exists
+        if (contactName || contactPhone) { 
             detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${displaySharedCountryCode}${contactPhone || 'N/A'}\n`;
         }
     }
@@ -395,7 +395,7 @@ export function BasicInfoForm() {
                       <SelectTrigger id="sharedEmergencyContactCountryCode" className="text-sm">
                         <SelectValue placeholder="Select Country">
                           {(() => {
-                            const selectedCode = field.value; // Use field.value directly
+                            const selectedCode = field.value; 
                             const country = countryCodes.find(c => c.code === selectedCode);
                             return country ? (
                               <span className="flex items-center">
@@ -460,7 +460,7 @@ export function BasicInfoForm() {
               name="customSOSMessage"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="customSOSMessage" className="text-xs flex items-center gap-1"><MessageSquare className="w-3 h-3"/>Personalized SOS Message</FormLabel>
+                  
                   <FormControl>
                     <Textarea id="customSOSMessage" placeholder="Default: Emergency! I need help. My location is being broadcast." {...field} className="text-sm min-h-[80px]" maxLength={160}/>
                   </FormControl>
@@ -484,3 +484,4 @@ export function BasicInfoForm() {
     </Card>
   );
 }
+
