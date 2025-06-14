@@ -3,9 +3,11 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wifi, Bluetooth, Router as HotspotIcon, MapPin, LocateFixed, Battery, BatteryCharging, PowerOff, Clock, ShieldQuestion, Signal, SignalHigh, SignalLow, SignalMedium } from 'lucide-react';
+import { Wifi, Bluetooth, Router as HotspotIcon, MapPin, LocateFixed, Battery, BatteryCharging, PowerOff, Clock, ShieldQuestion, Signal, SignalHigh, SignalLow, SignalMedium, Copy } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator'; // Added import
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface ConnectivityState {
   signalStrength: number; // 0-4 bars
@@ -30,6 +32,7 @@ export function ConnectivityStatusBox() {
     locationServicesOn: false, // Will be updated
   });
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Fetch Geolocation
@@ -117,6 +120,20 @@ export function ConnectivityStatusBox() {
     return `${hours}h ago`;
   };
 
+  const handleCopyCoordinates = () => {
+    if (status.gpsCoords) {
+      const coordsText = `LAT ${status.gpsCoords.lat}, LON ${status.gpsCoords.lon}`;
+      navigator.clipboard.writeText(coordsText)
+        .then(() => {
+          toast({ title: "Coordinates Copied", description: coordsText });
+        })
+        .catch(err => {
+          console.error("Failed to copy coordinates: ", err);
+          toast({ title: "Copy Failed", description: "Could not copy coordinates to clipboard.", variant: "destructive" });
+        });
+    }
+  };
+
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
@@ -154,12 +171,20 @@ export function ConnectivityStatusBox() {
         <Separator className="my-2" />
         
         <div className="space-y-1">
-            <div className="flex items-center gap-1.5 text-xs">
-                <MapPin className="w-3.5 h-3.5 text-primary" />
-                <span className="font-medium text-foreground">GPS Coordinates:</span>
-                <span className="text-muted-foreground">
-                {status.gpsCoords ? `LAT ${status.gpsCoords.lat}, LON ${status.gpsCoords.lon}` : "Unavailable"}
-                </span>
+            <div className="flex items-center justify-between gap-1.5 text-xs">
+                <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="font-medium text-foreground">GPS Coordinates:</span>
+                    <span className="text-muted-foreground select-all">
+                    {status.gpsCoords ? <>LAT <span className="font-mono">{status.gpsCoords.lat}</span>, LON <span className="font-mono">{status.gpsCoords.lon}</span></> : "Unavailable"}
+                    </span>
+                </div>
+                {status.gpsCoords && (
+                    <Button variant="ghost" size="icon" onClick={handleCopyCoordinates} className="h-6 w-6 shrink-0">
+                        <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                        <span className="sr-only">Copy Coordinates</span>
+                    </Button>
+                )}
             </div>
             <div className="flex items-center gap-1.5 text-xs">
                 <Clock className="w-3.5 h-3.5 text-primary" />
@@ -183,3 +208,4 @@ const StatusItem = ({ icon, label, value, children }: { icon: React.ReactNode, l
     {children && <div className="ml-[calc(1rem+0.375rem)]">{children}</div>}
   </div>
 );
+
