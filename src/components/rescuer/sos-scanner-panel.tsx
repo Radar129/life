@@ -5,16 +5,15 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bluetooth, Search, WifiOff, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
-import { RadarAnimation } from '@/components/rescuer/radar-animation'; // Import the new radar animation
+import { RadarAnimation } from '@/components/rescuer/radar-animation';
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type {DetectedSignal as BaseDetectedSignal} from '@/types/signals';
-
+import type { DetectedSignal as BaseDetectedSignal } from '@/types/signals';
 
 interface DetectedSignal extends BaseDetectedSignal {
   status?: string;
+  advertisedName?: string; // To store the original SOS_Name_Lat_Lon string
 }
-
 
 type ScanStatus = "idle" | "scanning" | "error" | "unsupported";
 
@@ -24,31 +23,37 @@ const ListItemWrapper = ({ children, className }: { children: React.ReactNode, c
 
 const VICTIM_STATUSES = ["Pending", "Located", "Assistance In Progress", "Rescued", "No Response"];
 
-
 interface SOSScannerPanelProps {
   onSignalsDetected: (signals: DetectedSignal[]) => void;
   detectedSignals: DetectedSignal[];
   setDetectedSignals: React.Dispatch<React.SetStateAction<DetectedSignal[]>>;
 }
 
-
 export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetectedSignals }: SOSScannerPanelProps) {
   const [status, setStatus] = useState<ScanStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const parseSignalName = (name: string): { lat: number | undefined, lon: number | undefined } => {
-    if (name.startsWith("SOS_")) {
-      const parts = name.split('_');
-      if (parts.length === 3) {
+  const parseSignalName = (advertisedName: string): { victimName: string | undefined, lat: number | undefined, lon: number | undefined } => {
+    if (advertisedName && advertisedName.startsWith("SOS_")) {
+      const parts = advertisedName.split('_');
+      // Expecting SOS_Name_Lat_Lon, so 4 parts
+      if (parts.length === 4) {
+        const victimName = parts[1].replace(/_/g, ' '); // Restore spaces for display
+        const lat = parseFloat(parts[2]);
+        const lon = parseFloat(parts[3]);
+        if (!isNaN(lat) && !isNaN(lon) && victimName) {
+          return { victimName, lat, lon };
+        }
+      } else if (parts.length === 3) { // Fallback for SOS_Lat_Lon if name is missing or structure is old
         const lat = parseFloat(parts[1]);
         const lon = parseFloat(parts[2]);
         if (!isNaN(lat) && !isNaN(lon)) {
-          return { lat, lon };
+          return { victimName: "Unknown", lat, lon };
         }
       }
     }
-    return { lat: undefined, lon: undefined };
+    return { victimName: undefined, lat: undefined, lon: undefined };
   };
   
   const startScan = async () => {
@@ -64,21 +69,40 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
       return;
     }
 
-    toast({ title: "Scanning Started", description: "Looking for SOS signals..." });
+    toast({ title: "Scanning Started", description: "Looking for SOS signals (simulated)..." });
 
     const totalScanTime = 5000; 
     
     const scanTimeoutId = setTimeout(() => {
       if (Math.random() > 0.3) { 
-        const newSignalsRaw: Omit<DetectedSignal, 'status'>[] = [
-          { id: "device1", name: "SOS_34.0522_-118.2437", rssi: -55, ...parseSignalName("SOS_34.0522_-118.2437"), timestamp: Date.now() },
-          { id: "device2", name: "SOS_34.0580_-118.2500", rssi: -70, ...parseSignalName("SOS_34.0580_-118.2500"), timestamp: Date.now() },
-          { id: "device3", name: "Generic Bluetooth Device", rssi: -85, timestamp: Date.now() },
+        // Mock signals now include a name component
+        const mockAdvertisedNames = [
+          "SOS_AliceSmith_34.0522_-118.2437",
+          "SOS_BobRay_34.0580_-118.2500",
+          "Generic Bluetooth Device", // This one won't be parsed as SOS
+          "SOS_Carol_34.0111_-118.1122",
         ];
-        const filteredSignals = newSignalsRaw
-          .filter(s => s.name.startsWith("SOS_"))
-          .map(s => ({ ...s, status: "Pending" }));
-        finishScan(filteredSignals);
+
+        const newSignals: DetectedSignal[] = mockAdvertisedNames
+          .map((advName, index) => {
+            const parsed = parseSignalName(advName);
+            if (parsed.victimName && parsed.lat !== undefined && parsed.lon !== undefined) {
+              return {
+                id: `device${index + 1}`,
+                advertisedName: advName,
+                name: parsed.victimName, // Parsed victim name
+                lat: parsed.lat,
+                lon: parsed.lon,
+                rssi: -50 - Math.floor(Math.random() * 30), // Random RSSI
+                timestamp: Date.now(),
+                status: "Pending",
+              };
+            }
+            return null; 
+          })
+          .filter((signal): signal is DetectedSignal => signal !== null); 
+
+        finishScan(newSignals);
       } else {
         finishScan([]); 
       }
@@ -127,7 +151,7 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
           SOS Signal Scanner
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Scan for nearby SOS signals broadcast by victims.
+          Scan for nearby SOS signals (simulated) broadcast by victims. Signal format: SOS_Name_Lat_Lon.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -161,7 +185,7 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
               <ListItemWrapper key={signal.id}>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2 sm:gap-3">
                   <div className="flex-grow">
-                    <p className="font-semibold text-sm text-foreground">{signal.name}</p>
+                    <p className="font-semibold text-sm text-foreground">Victim: {signal.name}</p>
                     {signal.lat && signal.lon && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <MapPin className="w-3 h-3" /> LAT: {signal.lat}, LON: {signal.lon}
@@ -171,6 +195,7 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
                         {getSignalStrengthIcon(signal.rssi)}
                         <span>{getProximityText(signal.rssi)} (RSSI: {signal.rssi} dBm)</span>
                       </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">Raw Signal: {signal.advertisedName}</p>
                   </div>
                   <div className="w-full sm:w-40 flex-shrink-0 mt-1 sm:mt-0">
                     <Select
@@ -202,3 +227,5 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
     </Card>
   );
 }
+
+    

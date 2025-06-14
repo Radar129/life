@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 
 interface Signal {
   id: string;
-  name: string;
+  name: string; // This will now be the parsed victim's name
   lat?: number;
   lon?: number;
+  advertisedName?: string; // The original SOS_Name_Lat_Lon string
 }
 
 interface MapDisplayPanelProps {
@@ -61,7 +62,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
           Incident Map
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Visual overview of detected SOS signals and your current location. Click pins or buttons for directions.
+          Visual overview of detected SOS signals and your current location. Click pins or buttons for directions. Signals are simulated.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -103,7 +104,6 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
                   }}
                   title={`Victim: ${signal.name} (LAT ${signal.lat}, LON ${signal.lon}) - Click for directions`}
                   onClick={() => {
-                    console.log('SOS Pin clicked:', signal.name, signal.lat, signal.lon); // Diagnostic log
                     if (signal.lat && signal.lon) {
                      openGoogleMapsDirections(signal.lat, signal.lon);
                     }
@@ -118,7 +118,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
                   }}
                 >
                   <MapPin className="w-5 h-5 sm:w-6 sm:h-6 fill-red-500" />
-                  <span className="text-xs bg-white/70 px-1 rounded">SOS</span>
+                  <span className="text-xs bg-white/70 px-1 rounded">SOS: {signal.name}</span>
                 </div>
               )
             }
@@ -136,9 +136,9 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
               signals.map(s => s.lat && s.lon && (
                 <div key={s.id} className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground border-b pb-1 mb-1">
                   <div>
-                    <span className='font-semibold text-destructive'>SOS Signal:</span> {s.name}
+                    <span className='font-semibold text-destructive'>Victim:</span> {s.name}
                     <br />
-                    <span className="text-xs">LAT {s.lat}, LON {s.lon}</span>
+                    <span className="text-xs">LAT {s.lat}, LON {s.lon} (Signal: {s.advertisedName || 'N/A'})</span>
                   </div>
                   {rescuerLocation && (
                     <Button
@@ -164,3 +164,5 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
     </Card>
   );
 }
+
+    

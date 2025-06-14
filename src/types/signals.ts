@@ -2,12 +2,13 @@
 // src/types/signals.ts
 export interface DetectedSignal {
   id: string;
-  name: string;
+  name: string; // Parsed victim's name
   rssi: number;
   lat?: number;
   lon?: number;
   timestamp: number;
   status?: string; 
+  advertisedName?: string; // The original raw advertised name, e.g., SOS_Name_Lat_Lon
 }
 
 export interface VictimBasicInfo {
@@ -33,3 +34,4 @@ export interface VictimBasicInfo {
   customSOSMessage?: string;
 }
 
+    

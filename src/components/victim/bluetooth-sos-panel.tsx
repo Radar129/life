@@ -57,29 +57,36 @@ export function BluetoothSOSPanel() {
   const broadcastSignal = (currentLocation: { lat: number; lon: number }) => {
     const storedBasicInfo = localStorage.getItem('victimBasicInfo');
     let basicInfo: VictimBasicInfo | null = null;
-    let sosMessage = "Emergency! I need help. My location is being broadcast.";
+    let victimNameForSignal = "Unknown";
+    let customSosMessageText = "Emergency! I need help. My location is being broadcast.";
+
 
     if (storedBasicInfo) {
       try {
         basicInfo = JSON.parse(storedBasicInfo);
-        if (basicInfo?.customSOSMessage) {
-          sosMessage = basicInfo.customSOSMessage;
+        if (basicInfo?.name) {
+          victimNameForSignal = basicInfo.name.replace(/\s+/g, '_').substring(0, 20); // Replace spaces, truncate
+        }
+        if (basicInfo?.customSOSMessage){
+            customSosMessageText = basicInfo.customSOSMessage;
         }
       } catch (e) {
         console.error("Could not parse victim basic info from localStorage", e);
       }
     }
     
-    const fullMessage = `${sosMessage} Location: LAT ${currentLocation.lat}, LON ${currentLocation.lon}.`;
-    console.log(`SOS broadcast. Device name format: SOS_${currentLocation.lat}_${currentLocation.lon}`);
-    console.log("User Info Sent:", basicInfo);
-    console.log("Full SOS Message Sent:", fullMessage);
+    const deviceName = `SOS_${victimNameForSignal}_${currentLocation.lat}_${currentLocation.lon}`;
+    const fullMessage = `${customSosMessageText} Location: LAT ${currentLocation.lat}, LON ${currentLocation.lon}. Name: ${victimNameForSignal.replace(/_/g, ' ')}.`;
+
+    console.log(`SOS broadcast. Simulated device name: ${deviceName}`);
+    console.log("User Info Sent (Simulated):", basicInfo); // For simulation, this info would be part of a different payload if connected
+    console.log("Full SOS Message (Simulated):", fullMessage);
     
-    const logDetail = `SOS Signal Broadcast: LAT ${currentLocation.lat}, LON ${currentLocation.lon}.`;
+    const logDetail = `SOS Signal Broadcast: Simulated Name ${deviceName}. Message: ${fullMessage}`;
     window.dispatchEvent(new CustomEvent('newAppLog', { detail: logDetail }));
     toast({
       title: "SOS Broadcasting",
-      description: `Signal sent with: LAT ${currentLocation.lat}, LON ${currentLocation.lon}.`,
+      description: `Signal sent with (simulated): ${deviceName}. Rebroadcasting periodically.`,
     });
   };
 
@@ -130,8 +137,18 @@ export function BluetoothSOSPanel() {
       setIsBuzzerActive(true); 
       setStatus("active");
       startRebroadcastCountdown(loc);
-      window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activated. Broadcasting from LAT ${loc.lat}, LON ${loc.lon}. Alerts enabled.` }));
-      toast({ title: "SOS Active", description: "Your SOS signal and alerts are active. Rebroadcasting periodically.", variant: "default" });
+
+      const storedBasicInfo = localStorage.getItem('victimBasicInfo');
+      let victimName = "Unknown";
+      if (storedBasicInfo) {
+          try {
+              const parsed = JSON.parse(storedBasicInfo) as VictimBasicInfo;
+              if(parsed.name) victimName = parsed.name;
+          } catch(e){}
+      }
+      const deviceNameForLog = `SOS_${victimName.replace(/\s+/g, '_').substring(0, 20)}_${loc.lat}_${loc.lon}`;
+      window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activated. Broadcasting (simulated) as ${deviceNameForLog}. Alerts enabled.` }));
+      toast({ title: "SOS Active", description: `Your SOS signal (simulated as ${deviceNameForLog}) and alerts are active.`, variant: "default" });
 
     } catch (err: any) {
       setStatus("error");
@@ -162,7 +179,20 @@ export function BluetoothSOSPanel() {
       case "activating":
         return { icon: <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-primary animate-spin" />, text: "Activating SOS...", color: "text-primary" };
       case "active":
-        return { icon: <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />, text: `SOS Active! Broadcasting: ${location ? `LAT ${location.lat}, LON ${location.lon}` : 'Location N/A'}`, color: "text-green-500" };
+        let victimNameForDisplay = "Unknown";
+         if (location) {
+            const storedBasicInfo = localStorage.getItem('victimBasicInfo');
+            if (storedBasicInfo) {
+                try {
+                    const parsed = JSON.parse(storedBasicInfo) as VictimBasicInfo;
+                    if(parsed.name) victimNameForDisplay = parsed.name.replace(/\s+/g, '_').substring(0, 20);
+                } catch(e){}
+            }
+            const deviceName = `SOS_${victimNameForDisplay}_${location.lat}_${location.lon}`;
+            return { icon: <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />, text: `SOS Active! Broadcasting (simulated) as: ${deviceName}`, color: "text-green-500" };
+         }
+         return { icon: <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />, text: `SOS Active! Broadcasting... Location N/A`, color: "text-green-500" };
+
       case "error":
         return { icon: <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: `Error: ${error}`, color: "text-destructive" };
       case "unsupported":
@@ -179,7 +209,7 @@ export function BluetoothSOSPanel() {
       <CardHeader>
         <CardTitle className="font-headline text-xl sm:text-2xl text-center">SOS Alert Box</CardTitle>
         <CardDescription className="text-center text-xs sm:text-sm">
-          Broadcast your location and activate alerts.
+          Broadcast your location and activate alerts. Bluetooth advertising is simulated.
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center space-y-3 py-4 sm:py-6">
@@ -200,7 +230,7 @@ export function BluetoothSOSPanel() {
               Rebroadcasting signal in: <span className="font-semibold text-primary">{countdown}s</span>
             </p>
              <p className="text-xs text-muted-foreground mt-2">
-            Rescuers nearby may detect your signal.
+            Rescuers nearby may detect your (simulated) signal.
           </p>
           </div>
         )}
@@ -232,3 +262,4 @@ export function BluetoothSOSPanel() {
   );
 }
 
+    
