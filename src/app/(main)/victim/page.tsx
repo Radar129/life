@@ -8,10 +8,10 @@ import { Separator } from '@/components/ui/separator';
 export default function VictimPage() {
   return (
     <div className="container mx-auto py-4 sm:py-6 flex flex-col items-center space-y-6">
+      <UserProfileReferenceCard />
       <BluetoothSOSPanel />
       <Separator className="my-2 w-full max-w-2xl" />
       <ConnectivityStatusBox />
-      <UserProfileReferenceCard />
       <Separator className="my-2 w-full max-w-2xl" />
       <NotificationLogPanel />
     </div>
