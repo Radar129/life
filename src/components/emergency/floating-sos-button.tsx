@@ -26,6 +26,7 @@ export function FloatingSOSButton() {
   const handleActivateSOS = () => {
     router.push('/victim?sos=true');
     setIsDialogOpen(false); // Close dialog after action
+    // Log event based on current page context before navigation
     const logEventName = pathname === '/rescuer' ? 'newRescuerAppLog' : 'newAppLog';
     window.dispatchEvent(new CustomEvent(logEventName, { detail: "Floating SOS button: Confirmed and activating SOS." }));
   };
@@ -36,7 +37,8 @@ export function FloatingSOSButton() {
     window.dispatchEvent(new CustomEvent(logEventName, { detail: "Floating SOS button: Activation cancelled." }));
   }
 
-  const isVisible = pathname === '/victim' || pathname === '/rescuer';
+  // Button is only visible on the /rescuer page
+  const isVisible = pathname === '/rescuer';
 
   if (!isVisible) {
     return null;
