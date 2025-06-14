@@ -34,4 +34,11 @@ export interface VictimBasicInfo {
   customSOSMessage?: string;
 }
 
+export interface RescuerProfileInfo {
+  name?: string;
+  teamId?: string;
+  contactPhone?: string;
+  profilePictureDataUrl?: string;
+  // Add any other relevant fields for a rescuer
+}
     
