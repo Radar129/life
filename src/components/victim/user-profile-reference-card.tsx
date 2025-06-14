@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from 'lucide-react';
 import type { VictimBasicInfo } from '@/types/signals';
-import { Card, CardContent } from '@/components/ui/card'; // Removed CardHeader and CardTitle
+import { Card, CardContent } from '@/components/ui/card';
 
 export function UserProfileReferenceCard() {
   const [userInfo, setUserInfo] = useState<VictimBasicInfo | null>(null);
@@ -74,7 +74,10 @@ export function UserProfileReferenceCard() {
     <Card className="w-full max-w-2xl mx-auto shadow-md">
       <CardContent className="flex items-center space-x-3 p-3">
         <Avatar className="w-12 h-12 border-2 border-primary">
-          <AvatarImage src={userInfo.profilePictureDataUrl || undefined} alt={userInfo.name || 'User'} />
+          <AvatarImage 
+            src={userInfo.profilePictureDataUrl || undefined} 
+            alt={userInfo.name ? `${userInfo.name}'s profile picture` : 'User profile picture'}
+          />
           <AvatarFallback>
             <User className="w-6 h-6" />
           </AvatarFallback>
