@@ -27,7 +27,7 @@ export function ConnectivityStatusBox() {
     signalStrength: 3, 
     bluetoothOn: true, 
     wifiConnected: true, 
-    wifiNetworkName: "HomeNet_5G", 
+    wifiNetworkName: "HomeNet_5G_Simulated", 
     hotspotOn: false, 
     locationServicesOn: false, 
   });
@@ -139,7 +139,7 @@ export function ConnectivityStatusBox() {
           Device Connectivity Status
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Real-time overview of your device's critical systems.
+          Real-time overview of your device's critical systems. Device names are simulated.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 pt-3 sm:pt-4 text-sm">
@@ -147,8 +147,16 @@ export function ConnectivityStatusBox() {
         
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <StatusItem icon={getSignalIcon(status.signalStrength)} label="Signal" value={`${status.signalStrength}/4 bars`} />
-          <StatusItem icon={<Bluetooth className={`w-4 h-4 ${status.bluetoothOn ? 'text-blue-500' : 'text-muted-foreground'}`} />} label="Bluetooth" value={status.bluetoothOn ? "ON" : "OFF"} />
-          <StatusItem icon={<Wifi className={`w-4 h-4 ${status.wifiConnected ? 'text-green-500' : 'text-muted-foreground'}`} />} label="Wi-Fi" value={status.wifiConnected ? (status.wifiNetworkName || "Connected") : "OFF"} />
+          <StatusItem 
+            icon={<Bluetooth className={`w-4 h-4 ${status.bluetoothOn ? 'text-blue-500' : 'text-muted-foreground'}`} />} 
+            label="Bluetooth" 
+            value={status.bluetoothOn ? "ON (Device: R.A.D.A.R Host)" : "OFF"} 
+          />
+          <StatusItem 
+            icon={<Wifi className={`w-4 h-4 ${status.wifiConnected ? 'text-green-500' : 'text-muted-foreground'}`} />} 
+            label="Wi-Fi" 
+            value={status.wifiConnected ? `Connected (${status.wifiNetworkName || "MyNetwork_Simulated"})` : "Disconnected"} 
+          />
           <StatusItem icon={<HotspotIcon className={`w-4 h-4 ${status.hotspotOn ? 'text-orange-500' : 'text-muted-foreground'}`} />} label="Hotspot" value={status.hotspotOn ? "ON" : "OFF"} />
           <StatusItem icon={<LocateFixed className={`w-4 h-4 ${status.locationServicesOn ? 'text-green-500' : 'text-destructive'}`} />} label="Location Svcs" value={status.locationServicesOn ? "ON" : "OFF"} />
            {status.batteryLevel !== undefined ? (
