@@ -24,12 +24,12 @@ interface ConnectivityState {
 
 export function ConnectivityStatusBox() {
   const [status, setStatus] = useState<ConnectivityState>({
-    signalStrength: 3, 
-    bluetoothOn: true, 
-    wifiConnected: true, 
-    wifiNetworkName: "HomeNet_5G_Simulated", 
-    hotspotOn: false, 
-    locationServicesOn: false, 
+    signalStrength: 3,
+    bluetoothOn: true,
+    wifiConnected: true,
+    wifiNetworkName: "HomeNet_5G", // Changed from HomeNet_5G_Simulated
+    hotspotOn: false,
+    locationServicesOn: false,
   });
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -83,10 +83,10 @@ export function ConnectivityStatusBox() {
         setStatus(prev => ({...prev, batteryLevel: undefined, batteryCharging: undefined}));
       });
     } else {
-         setStatus(prev => ({...prev, batteryLevel: 75, batteryCharging: Math.random() > 0.5})); 
+         setStatus(prev => ({...prev, batteryLevel: 75, batteryCharging: Math.random() > 0.5}));
     }
-    
-    
+
+
     const intervalId = setInterval(() => {
         setStatus(prev => ({
             ...prev,
@@ -104,7 +104,7 @@ export function ConnectivityStatusBox() {
     if (strength >= 1) return <SignalMedium className="w-4 h-4 text-orange-500" />;
     return <SignalLow className="w-4 h-4 text-destructive" />;
   };
-  
+
   const formatTimeAgo = (date?: Date): string => {
     if (!date) return "N/A";
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -144,25 +144,25 @@ export function ConnectivityStatusBox() {
       </CardHeader>
       <CardContent className="space-y-3 pt-3 sm:pt-4 text-sm">
         {error && <p className="text-xs text-destructive bg-destructive/10 p-2 rounded-md">{error}</p>}
-        
+
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <StatusItem icon={getSignalIcon(status.signalStrength)} label="Signal" value={`${status.signalStrength}/4 bars`} />
-          <StatusItem 
-            icon={<Bluetooth className={`w-4 h-4 ${status.bluetoothOn ? 'text-blue-500' : 'text-muted-foreground'}`} />} 
-            label="Bluetooth" 
-            value={status.bluetoothOn ? "ON (Device: R.A.D.A.R Host)" : "OFF"} 
+          <StatusItem
+            icon={<Bluetooth className={`w-4 h-4 ${status.bluetoothOn ? 'text-blue-500' : 'text-muted-foreground'}`} />}
+            label="Bluetooth"
+            value={status.bluetoothOn ? "ON (Device: R.A.D.A.R Host)" : "OFF"}
           />
-          <StatusItem 
-            icon={<Wifi className={`w-4 h-4 ${status.wifiConnected ? 'text-green-500' : 'text-muted-foreground'}`} />} 
-            label="Wi-Fi" 
-            value={status.wifiConnected ? `Connected (${status.wifiNetworkName || "MyNetwork_Simulated"})` : "Disconnected"} 
+          <StatusItem
+            icon={<Wifi className={`w-4 h-4 ${status.wifiConnected ? 'text-green-500' : 'text-muted-foreground'}`} />}
+            label="Wi-Fi"
+            value={status.wifiConnected ? `Connected (${status.wifiNetworkName || "MyNetwork"})` : "Disconnected"} // Changed from MyNetwork_Simulated
           />
           <StatusItem icon={<HotspotIcon className={`w-4 h-4 ${status.hotspotOn ? 'text-orange-500' : 'text-muted-foreground'}`} />} label="Hotspot" value={status.hotspotOn ? "ON" : "OFF"} />
           <StatusItem icon={<LocateFixed className={`w-4 h-4 ${status.locationServicesOn ? 'text-green-500' : 'text-destructive'}`} />} label="Location Svcs" value={status.locationServicesOn ? "ON" : "OFF"} />
            {status.batteryLevel !== undefined ? (
-            <StatusItem 
-              icon={status.batteryCharging ? <BatteryCharging className="w-4 h-4 text-green-500" /> : <Battery className="w-4 h-4 text-primary" />} 
-              label="Battery" 
+            <StatusItem
+              icon={status.batteryCharging ? <BatteryCharging className="w-4 h-4 text-green-500" /> : <Battery className="w-4 h-4 text-primary" />}
+              label="Battery"
               value={`${status.batteryLevel}% ${status.batteryCharging ? '(Charging)' : ''}`}
             >
               <Progress value={status.batteryLevel} className="h-1.5 mt-0.5" />
@@ -171,9 +171,9 @@ export function ConnectivityStatusBox() {
             <StatusItem icon={<PowerOff className="w-4 h-4 text-muted-foreground" />} label="Battery" value="N/A" />
           )}
         </div>
-        
+
         <Separator className="my-2" />
-        
+
         <div className="space-y-1">
             <div className="flex items-center justify-between gap-1.5 text-xs">
                 <div className="flex items-center gap-1.5">
