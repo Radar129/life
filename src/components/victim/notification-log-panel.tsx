@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ListChecks, Copy } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 interface LogEntry {
   id: number;
@@ -17,11 +18,11 @@ interface LogEntry {
 export function NotificationLogPanel() {
   const { toast } = useToast();
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const logIdCounter = useRef(0); // For generating unique log IDs
+  const logIdCounter = useRef(0);
 
   useEffect(() => {
     const handleNewLog = (event: Event) => {
-      const customEvent = event as CustomEvent<string>; // Assuming detail is a string message
+      const customEvent = event as CustomEvent<string>;
       if (typeof customEvent.detail === 'string') {
         setLogs(prevLogs => [
           {
@@ -29,18 +30,12 @@ export function NotificationLogPanel() {
             timestamp: new Date(),
             message: customEvent.detail,
           },
-          ...prevLogs, // Add new logs to the top
+          ...prevLogs,
         ]);
       }
     };
 
     window.addEventListener('newAppLog', handleNewLog);
-
-    // Example: Dispatch a log when the panel loads (for testing, can be removed)
-    // setTimeout(() => {
-    //   window.dispatchEvent(new CustomEvent('newAppLog', { detail: "Notification panel initialized." }));
-    // }, 1000);
-
 
     return () => {
       window.removeEventListener('newAppLog', handleNewLog);
@@ -55,9 +50,8 @@ export function NotificationLogPanel() {
     }
 
     let logString = "Notification & Activity Log:\n\n";
-    // Iterate in reverse to copy logs from oldest to newest for readability
     [...logs].reverse().forEach(log => {
-      logString += `${log.timestamp.toLocaleString()} - ${log.message}\n`;
+      logString += `${format(log.timestamp, 'PPpp')} - ${log.message}\n`;
     });
 
     navigator.clipboard.writeText(logString.trim())
@@ -78,7 +72,7 @@ export function NotificationLogPanel() {
           Notification & Activity Log
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Tracks SOS activations, connectivity changes, and other important events.
+          Tracks SOS activations, connectivity changes, and other important events. Timestamps are based on your device's local time.
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-3 sm:pt-4">
@@ -88,10 +82,7 @@ export function NotificationLogPanel() {
               {logs.map((log) => (
                 <li key={log.id} className="text-xs border-b border-dashed pb-1.5 last:border-b-0">
                   <p className="font-medium text-foreground">
-                    <span className="text-primary">{log.timestamp.toLocaleTimeString()}</span> - {log.message}
-                  </p>
-                  <p className="text-muted-foreground text-[0.7rem] pl-1">
-                    {log.timestamp.toLocaleDateString()}
+                    <span className="text-primary">{format(log.timestamp, 'PPpp')}</span> - {log.message}
                   </p>
                 </li>
               ))}
