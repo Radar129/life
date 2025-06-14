@@ -31,7 +31,8 @@ export function BluetoothSOSPanel() {
     return () => {
       if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId);
     };
-  }, [searchParams, status, rebroadcastIntervalId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, status]); // Adding rebroadcastIntervalId to dependencies can cause issues with interval clearing
 
   const getDeviceLocation = (): Promise<{ lat: number; lon: number }> => {
     return new Promise((resolve, reject) => {
@@ -82,10 +83,13 @@ export function BluetoothSOSPanel() {
 
   const startRebroadcastCountdown = (currentLocation: {lat: number, lon: number}) => {
     setCountdown(REBROADCAST_INTERVAL);
+    if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId); // Clear existing interval before starting new
     const intervalId = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
-          broadcastSignal(currentLocation); // Re-fetch location or use last known if this is intended
+          // It's better to fetch fresh location for rebroadcast if possible, or decide policy
+          // For now, using the location passed at the start of this countdown cycle.
+          broadcastSignal(currentLocation); 
           return REBROADCAST_INTERVAL;
         }
         return prev - 1;
@@ -100,7 +104,10 @@ export function BluetoothSOSPanel() {
     setError(null);
     setIsFlashlightActive(false);
     setIsBuzzerActive(false);
-    if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId);
+    if (rebroadcastIntervalId) {
+        clearInterval(rebroadcastIntervalId);
+        setRebroadcastIntervalId(null);
+    }
 
 
     if (!navigator.bluetooth) {
@@ -146,7 +153,7 @@ export function BluetoothSOSPanel() {
   const getStatusContent = () => {
     switch (status) {
       case "inactive":
-        return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground" />, text: "SOS is OFF.", color: "text-muted-foreground" };
+        return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: "SOS is OFF.", color: "text-muted-foreground" };
       case "activating":
         return { icon: <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-primary animate-spin" />, text: "Activating SOS...", color: "text-primary" };
       case "active":
@@ -156,7 +163,7 @@ export function BluetoothSOSPanel() {
       case "unsupported":
         return { icon: <Bluetooth className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: "Bluetooth not supported by browser.", color: "text-destructive" };
       default:
-        return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground" />, text: "SOS is OFF.", color: "text-muted-foreground" };
+        return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: "SOS is OFF.", color: "text-muted-foreground" };
     }
   };
 
@@ -171,7 +178,7 @@ export function BluetoothSOSPanel() {
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center space-y-3 py-4 sm:py-6">
-        <div className={`flex justify-center items-center ${color}`}>
+        <div className={`flex justify-center items-center`}> {/* Color class removed from here to apply specifically to text */}
           {icon}
         </div>
         <p className={`text-base sm:text-lg font-semibold ${color} px-2`}>{text}</p>
@@ -214,3 +221,4 @@ export function BluetoothSOSPanel() {
     </Card>
   );
 }
+
