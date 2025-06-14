@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, Save, NotebookPen, Users, CalendarIcon, Copy, Globe, MessageSquare, Upload, X, User as UserIcon } from 'lucide-react';
+import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, Save, NotebookPen, Users, CalendarIcon, Copy, Globe, MessageSquare, Upload, X, User as UserIcon, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { VictimBasicInfo } from '@/types/signals';
 import { Separator } from '@/components/ui/separator';
@@ -73,30 +73,32 @@ export function BasicInfoForm() {
   const [isSaved, setIsSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const defaultFormValuesRef = useRef<VictimBasicInfo>({
+    name: "",
+    dob: undefined,
+    age: "",
+    gender: "",
+    bloodGroup: "",
+    profilePictureDataUrl: "",
+    allergies: "",
+    medications: "",
+    conditions: "",
+    sharedEmergencyContactCountryCode: "+1", 
+    emergencyContact1Name: "",
+    emergencyContact1CountryCode: "+1", 
+    emergencyContact1Phone: "",
+    emergencyContact2Name: "",
+    emergencyContact2CountryCode: "+1", 
+    emergencyContact2Phone: "",
+    emergencyContact3Name: "",
+    emergencyContact3CountryCode: "+1", 
+    emergencyContact3Phone: "",
+    customSOSMessage: "Emergency! I need help. My location is being broadcast.",
+  });
+
   const form = useForm<VictimBasicInfo>({
     resolver: zodResolver(basicInfoSchema),
-    defaultValues: {
-      name: "",
-      dob: undefined,
-      age: "",
-      gender: "",
-      bloodGroup: "",
-      profilePictureDataUrl: "",
-      allergies: "",
-      medications: "",
-      conditions: "",
-      sharedEmergencyContactCountryCode: "+1", 
-      emergencyContact1Name: "",
-      emergencyContact1CountryCode: "+1", 
-      emergencyContact1Phone: "",
-      emergencyContact2Name: "",
-      emergencyContact2CountryCode: "+1", 
-      emergencyContact2Phone: "",
-      emergencyContact3Name: "",
-      emergencyContact3CountryCode: "+1", 
-      emergencyContact3Phone: "",
-      customSOSMessage: "Emergency! I need help. My location is being broadcast.",
-    },
+    defaultValues: defaultFormValuesRef.current,
   });
 
   const onSubmit: SubmitHandler<VictimBasicInfo> = (data) => {
@@ -116,16 +118,17 @@ export function BasicInfoForm() {
       try {
         const parsedInfo = JSON.parse(savedInfo) as VictimBasicInfo;
         const formData = {
-          ...parsedInfo,
+          ...defaultFormValuesRef.current, // Ensure all keys from default are present
+          ...parsedInfo, // Override with saved data
           dob: parsedInfo.dob ? parsedInfo.dob : undefined,
           profilePictureDataUrl: parsedInfo.profilePictureDataUrl || "",
         };
         form.reset(formData);
         
-        const effectiveSharedCode = form.getValues('sharedEmergencyContactCountryCode') || "+1";
-        form.setValue('emergencyContact1CountryCode', effectiveSharedCode);
-        form.setValue('emergencyContact2CountryCode', effectiveSharedCode);
-        form.setValue('emergencyContact3CountryCode', effectiveSharedCode);
+        const effectiveSharedCode = form.getValues('sharedEmergencyContactCountryCode') || defaultFormValuesRef.current.sharedEmergencyContactCountryCode;
+        form.setValue('emergencyContact1CountryCode', form.getValues('emergencyContact1CountryCode') || effectiveSharedCode);
+        form.setValue('emergencyContact2CountryCode', form.getValues('emergencyContact2CountryCode') || effectiveSharedCode);
+        form.setValue('emergencyContact3CountryCode', form.getValues('emergencyContact3CountryCode') || effectiveSharedCode);
 
         setIsSaved(true); 
       } catch (e) {
@@ -133,10 +136,12 @@ export function BasicInfoForm() {
         toast({ title: "Error", description: "Could not load previously saved information.", variant: "destructive"});
       }
     } else {
-        const defaultSharedCode = form.getValues('sharedEmergencyContactCountryCode') || "+1";
+        form.reset(defaultFormValuesRef.current);
+        const defaultSharedCode = defaultFormValuesRef.current.sharedEmergencyContactCountryCode;
         form.setValue('emergencyContact1CountryCode', defaultSharedCode);
         form.setValue('emergencyContact2CountryCode', defaultSharedCode);
         form.setValue('emergencyContact3CountryCode', defaultSharedCode);
+        setIsSaved(false); // No data initially, so not "saved"
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.reset, form.setValue, toast]);
@@ -221,6 +226,20 @@ export function BasicInfoForm() {
         console.error("Failed to copy details: ", err);
         toast({ title: "Copy Failed", description: "Could not copy details to clipboard.", variant: "destructive" });
       });
+  };
+
+  const handleClearForm = () => {
+    form.reset(defaultFormValuesRef.current);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""; 
+    }
+    localStorage.removeItem('victimBasicInfo');
+    setIsSaved(false); 
+    toast({
+      title: "Information Cleared",
+      description: "All your personal and emergency details have been removed from this device.",
+    });
+    window.dispatchEvent(new CustomEvent('victimInfoUpdated'));
   };
 
   return (
@@ -423,9 +442,21 @@ export function BasicInfoForm() {
                 <Select
                   onValueChange={(value) => {
                     field.onChange(value);
-                    form.setValue('emergencyContact1CountryCode', value);
-                    form.setValue('emergencyContact2CountryCode', value);
-                    form.setValue('emergencyContact3CountryCode', value);
+                    // Propagate to individual contacts ONLY if they are currently using the shared code or are empty
+                    // This prevents overriding a contact-specific code if one was set manually
+                    const contact1Code = form.getValues('emergencyContact1CountryCode');
+                    const contact2Code = form.getValues('emergencyContact2CountryCode');
+                    const contact3Code = form.getValues('emergencyContact3CountryCode');
+
+                    if (!contact1Code || contact1Code === form.watch('sharedEmergencyContactCountryCode') || contact1Code === defaultFormValuesRef.current.emergencyContact1CountryCode ) {
+                         form.setValue('emergencyContact1CountryCode', value);
+                    }
+                    if (!contact2Code || contact2Code === form.watch('sharedEmergencyContactCountryCode') || contact2Code === defaultFormValuesRef.current.emergencyContact2CountryCode) {
+                        form.setValue('emergencyContact2CountryCode', value);
+                    }
+                    if (!contact3Code || contact3Code === form.watch('sharedEmergencyContactCountryCode') || contact3Code === defaultFormValuesRef.current.emergencyContact3CountryCode) {
+                         form.setValue('emergencyContact3CountryCode', value);
+                    }
                     setIsSaved(false);
                   }}
                   value={field.value || ""}
@@ -509,15 +540,27 @@ export function BasicInfoForm() {
           />
 
         </div>
-        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t mt-auto">
-          <Button type="button" variant="secondary" size="sm" onClick={handleCopyDetails} className="text-sm w-full sm:w-auto order-last sm:order-first">
-            <Copy className="mr-2 h-4 w-4"/> Copy Details
-          </Button>
-          <Button type="submit" variant={isSaved ? "outline" : "default"} size="sm" className="text-sm w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row justify-end items-center gap-2 pt-4 border-t mt-auto">
+           <Button type="submit" variant={isSaved ? "outline" : "default"} size="sm" className="text-sm w-full sm:w-auto order-1 sm:order-3">
             <Save className="mr-2 h-4 w-4"/> {isSaved ? "Update Information" : "Save Information"}
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={handleClearForm} 
+            className="text-sm w-full sm:w-auto text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive-foreground order-2 sm:order-2"
+          >
+            <Trash2 className="mr-2 h-4 w-4"/> Clear All
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={handleCopyDetails} className="text-sm w-full sm:w-auto order-3 sm:order-1">
+            <Copy className="mr-2 h-4 w-4"/> Copy Details
           </Button>
         </div>
       </form>
     </Form>
   );
 }
+
+
+    
