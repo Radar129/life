@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, MessageSquare, Save, NotebookPen, Users, CalendarIcon } from 'lucide-react';
+import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, MessageSquare, Save, NotebookPen, Users, CalendarIcon, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { VictimBasicInfo } from '@/types/signals';
 import { Separator } from '@/components/ui/separator';
@@ -86,7 +86,6 @@ export function BasicInfoForm() {
     if (savedInfo) {
       try {
         const parsedInfo = JSON.parse(savedInfo) as VictimBasicInfo;
-        // Ensure dob is a Date object if it exists for the calendar, or undefined
         const formData = {
           ...parsedInfo,
           dob: parsedInfo.dob ? parsedInfo.dob : undefined,
@@ -109,6 +108,48 @@ export function BasicInfoForm() {
       form.setValue('dob', undefined);
       form.setValue('age', '');
     }
+  };
+
+  const handleCopyDetails = () => {
+    const details = form.getValues();
+    let detailsString = "User Information:\n";
+
+    if (details.name) detailsString += `Name: ${details.name}\n`;
+    if (details.dob) {
+        try {
+            detailsString += `Date of Birth: ${format(new Date(details.dob), "PPP")}\n`;
+        } catch (e) {
+             detailsString += `Date of Birth: ${details.dob}\n`; // fallback if dob is not a valid date string for format
+        }
+    }
+    if (details.age) detailsString += `Age: ${details.age}\n`;
+    if (details.gender) detailsString += `Gender: ${details.gender}\n`;
+    if (details.bloodGroup) detailsString += `Blood Group: ${details.bloodGroup}\n`;
+    
+    detailsString += "\nMedical Information:\n";
+    if (details.allergies) detailsString += `Allergies: ${details.allergies}\n`;
+    if (details.medications) detailsString += `Medications: ${details.medications}\n`;
+    if (details.conditions) detailsString += `Conditions: ${details.conditions}\n`;
+
+    detailsString += "\nEmergency Contacts:\n";
+    for (let i = 1; i <= 3; i++) {
+        const contactName = details[`emergencyContact${i}Name` as keyof VictimBasicInfo];
+        const contactPhone = details[`emergencyContact${i}Phone` as keyof VictimBasicInfo];
+        if (contactName || contactPhone) {
+            detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${contactPhone || 'N/A'}\n`;
+        }
+    }
+    
+    if (details.customSOSMessage) detailsString += `\nCustom SOS Message: ${details.customSOSMessage}\n`;
+
+    navigator.clipboard.writeText(detailsString.trim())
+      .then(() => {
+        toast({ title: "Details Copied", description: "Your information has been copied to the clipboard." });
+      })
+      .catch(err => {
+        console.error("Failed to copy details: ", err);
+        toast({ title: "Copy Failed", description: "Could not copy details to clipboard.", variant: "destructive" });
+      });
   };
 
   return (
@@ -169,7 +210,6 @@ export function BasicInfoForm() {
                           selected={field.value ? new Date(field.value) : undefined}
                           onSelect={(date) => {
                             handleDobChange(date);
-                            // field.onChange ensures react-hook-form is aware of the change
                             field.onChange(date ? format(date, 'yyyy-MM-dd') : undefined);
                           }}
                           disabled={(date) =>
@@ -345,8 +385,11 @@ export function BasicInfoForm() {
             />
 
           </CardContent>
-          <CardFooter className="flex justify-end p-4 border-t">
-            <Button type="submit" variant={isSaved ? "outline" : "default"} size="sm" className="text-sm">
+          <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 p-4 border-t">
+            <Button type="button" variant="secondary" size="sm" onClick={handleCopyDetails} className="text-sm w-full sm:w-auto order-last sm:order-first">
+              <Copy className="mr-2 h-4 w-4"/> Copy Details
+            </Button>
+            <Button type="submit" variant={isSaved ? "outline" : "default"} size="sm" className="text-sm w-full sm:w-auto">
               <Save className="mr-2 h-4 w-4"/> {isSaved ? "Update Information" : "Save Information"}
             </Button>
           </CardFooter>
@@ -355,4 +398,3 @@ export function BasicInfoForm() {
     </Card>
   );
 }
-
