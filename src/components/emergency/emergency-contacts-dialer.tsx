@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation'; // Import usePathname
+import { usePathname } from 'next/navigation';
 import { PhoneCall, User, Shield, Flame, Ambulance as AmbulanceIconLucide } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,93 +15,118 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import type { VictimBasicInfo } from '@/types/signals';
+import type { VictimBasicInfo, RescuerProfileInfo } from '@/types/signals';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-// Standard emergency numbers (examples, should be adapted/verified for real-world use)
 const STANDARD_EMERGENCY_SERVICES = [
   { name: "Police", number: "911", icon: Shield, category: "Official" },
   { name: "Ambulance", number: "911", icon: AmbulanceIconLucide, category: "Official" },
   { name: "Fire Department", number: "911", icon: Flame, category: "Official" },
-  // Consider adding 112 or making these configurable based on region
 ];
 
 export function EmergencyContactsDialer() {
   const [isOpen, setIsOpen] = useState(false);
-  const [userInfo, setUserInfo] = useState<VictimBasicInfo | null>(null);
-  const pathname = usePathname(); // Get the current pathname
+  const pathname = usePathname();
+
+  const [contactsSourceType, setContactsSourceType] = useState<'victim' | 'rescuer' | null>(null);
+  const [victimProfile, setVictimProfile] = useState<VictimBasicInfo | null>(null);
+  const [rescuerProfile, setRescuerProfile] = useState<RescuerProfileInfo | null>(null);
 
   useEffect(() => {
-    const loadUserInfo = () => {
+    const loadProfiles = () => {
       if (typeof window !== 'undefined') {
-        const savedInfo = localStorage.getItem('victimBasicInfo');
-        if (savedInfo) {
-          try {
-            setUserInfo(JSON.parse(savedInfo) as VictimBasicInfo);
-          } catch (e) {
-            console.error("Failed to parse basic info for emergency dialer", e);
-            setUserInfo(null);
+        if (pathname === '/victim') {
+          const savedVictimInfo = localStorage.getItem('victimBasicInfo');
+          if (savedVictimInfo) {
+            try {
+              setVictimProfile(JSON.parse(savedVictimInfo) as VictimBasicInfo);
+              setContactsSourceType('victim');
+            } catch (e) {
+              console.error("Failed to parse victim info for dialer", e);
+              setVictimProfile(null);
+            }
+          } else {
+            setVictimProfile(null);
           }
+          setRescuerProfile(null); 
+        } else if (pathname === '/rescuer') {
+          const savedRescuerInfo = localStorage.getItem('rescuerProfileInfo');
+          if (savedRescuerInfo) {
+            try {
+              setRescuerProfile(JSON.parse(savedRescuerInfo) as RescuerProfileInfo);
+              setContactsSourceType('rescuer');
+            } catch (e) {
+              console.error("Failed to parse rescuer info for dialer", e);
+              setRescuerProfile(null);
+            }
+          } else {
+            setRescuerProfile(null);
+          }
+          setVictimProfile(null);
         } else {
-          setUserInfo(null);
+          setVictimProfile(null);
+          setRescuerProfile(null);
+          setContactsSourceType(null);
         }
       }
     };
 
-    loadUserInfo(); // Initial load
+    loadProfiles();
 
+    const handleVictimInfoUpdate = () => { if (pathname === '/victim') loadProfiles(); };
+    const handleRescuerInfoUpdate = () => { if (pathname === '/rescuer') loadProfiles(); };
+    
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'victimBasicInfo') {
-        loadUserInfo();
+      if (event.key === 'victimBasicInfo' && pathname === '/victim') {
+        loadProfiles();
+      }
+      if (event.key === 'rescuerProfileInfo' && pathname === '/rescuer') {
+        loadProfiles();
       }
     };
     
-    window.addEventListener('victimInfoUpdated', loadUserInfo);
+    window.addEventListener('victimInfoUpdated', handleVictimInfoUpdate);
+    window.addEventListener('rescuerInfoUpdated', handleRescuerInfoUpdate);
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      window.removeEventListener('victimInfoUpdated', loadUserInfo);
+      window.removeEventListener('victimInfoUpdated', handleVictimInfoUpdate);
+      window.removeEventListener('rescuerInfoUpdated', handleRescuerInfoUpdate);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [pathname]);
 
   const formatPhoneNumberForTelLink = (countryCode?: string, phone?: string): string | null => {
     if (!phone) return null;
-    let cleanPhone = phone.replace(/\D/g, ''); // Remove non-digits
+    let cleanPhone = phone.replace(/\D/g, ''); 
 
     if (countryCode && countryCode !== "MANUAL_CODE" && countryCode.trim() !== "") {
         const cleanCountryCode = countryCode.replace(/\D/g, '');
-        // Only add country code if phone number doesn't already start with it (or with + and code)
         if (!cleanPhone.startsWith(cleanCountryCode) && !cleanPhone.startsWith(`+${cleanCountryCode}`)) {
             cleanPhone = `${cleanCountryCode}${cleanPhone}`;
         }
     }
     
-    // Ensure it starts with a '+' for international format if it seems like a full number
-    if (!cleanPhone.startsWith('+') && cleanPhone.length > 7) { // Heuristic for numbers that likely need a +
+    if (!cleanPhone.startsWith('+') && cleanPhone.length > 7) { 
         cleanPhone = `+${cleanPhone}`;
     } else if (!cleanPhone.startsWith('+') && countryCode && countryCode !== "MANUAL_CODE") {
-        // If it's short and a country code was provided, assume it's local to that country code.
         cleanPhone = `+${cleanPhone}`; 
     }
-
-
     return cleanPhone;
   };
 
   const personalContacts: { name: string; number: string; icon: React.ElementType; category: string }[] = [];
-  if (userInfo) {
+
+  if (contactsSourceType === 'victim' && victimProfile) {
     for (let i = 1; i <= 3; i++) {
       const nameKey = `emergencyContact${i}Name` as keyof VictimBasicInfo;
       const phoneKey = `emergencyContact${i}Phone` as keyof VictimBasicInfo;
       const countryCodeKey = `emergencyContact${i}CountryCode` as keyof VictimBasicInfo;
 
-      const name = userInfo[nameKey];
-      const phone = userInfo[phoneKey];
-      // Use individual contact code, fallback to shared, fallback to undefined
-      const contactSpecificCountryCode = userInfo[countryCodeKey];
-      const effectiveCountryCode = contactSpecificCountryCode && contactSpecificCountryCode !== "MANUAL_CODE" ? contactSpecificCountryCode : (userInfo.sharedEmergencyContactCountryCode !== "MANUAL_CODE" ? userInfo.sharedEmergencyContactCountryCode : undefined) ;
-
+      const name = victimProfile[nameKey];
+      const phone = victimProfile[phoneKey];
+      const contactSpecificCountryCode = victimProfile[countryCodeKey];
+      const effectiveCountryCode = contactSpecificCountryCode && contactSpecificCountryCode !== "MANUAL_CODE" ? contactSpecificCountryCode : (victimProfile.sharedEmergencyContactCountryCode !== "MANUAL_CODE" ? victimProfile.sharedEmergencyContactCountryCode : undefined);
 
       if (name && phone) {
         const telNumber = formatPhoneNumberForTelLink(effectiveCountryCode, phone);
@@ -110,16 +135,34 @@ export function EmergencyContactsDialer() {
         }
       }
     }
+  } else if (contactsSourceType === 'rescuer' && rescuerProfile) {
+    if (rescuerProfile.contactPhone) {
+      const telNumber = formatPhoneNumberForTelLink(undefined, rescuerProfile.contactPhone);
+      if (telNumber) {
+        personalContacts.push({
+          name: rescuerProfile.name || "My Phone",
+          number: telNumber,
+          icon: User, 
+          category: "Personal", 
+        });
+      }
+    }
   }
 
   const allContacts = [...personalContacts, ...STANDARD_EMERGENCY_SERVICES];
-
-  // Determine if the dialer should be visible
   const isDialerVisible = pathname === '/victim' || pathname === '/rescuer';
 
   if (!isDialerVisible) {
-    return null; // Don't render anything if not on the specified pages
+    return null;
   }
+
+  let emptyMessage = "No contacts available.";
+  if (contactsSourceType === 'victim') {
+    emptyMessage = "No personal contacts saved. Add them via your profile (User icon in header).";
+  } else if (contactsSourceType === 'rescuer') {
+    emptyMessage = "Rescuer contact not found. Add it via your Rescuer Profile (Shield icon in header).";
+  }
+
 
   return (
     <>
@@ -145,12 +188,13 @@ export function EmergencyContactsDialer() {
           </DialogHeader>
           
           <div className="px-6 pb-4 max-h-[60vh] overflow-y-auto">
-            {allContacts.length === 0 && personalContacts.length === 0 && ( // Show if no personal contacts AND no standard (which shouldn't happen)
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No personal contacts saved. Add them via your profile (User icon in header).
+            {personalContacts.length === 0 && contactsSourceType !== null && (
+              <p className="text-sm text-muted-foreground text-center py-4 border-b mb-3">
+                {emptyMessage}
+                {STANDARD_EMERGENCY_SERVICES.length > 0 && " Standard services are listed below."}
               </p>
             )}
-             {allContacts.length > 0 ? (
+            {allContacts.length > 0 ? (
               <ul className="space-y-3">
                 {allContacts.map((contact, index) => (
                   <li key={index} className="border-b pb-3 last:border-b-0 last:pb-0">
@@ -158,8 +202,9 @@ export function EmergencyContactsDialer() {
                       href={`tel:${contact.number}`}
                       className="flex items-center space-x-3 p-2 -m-2 rounded-md hover:bg-muted transition-colors group"
                       onClick={() => {
-                          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Attempting to call ${contact.name}: ${contact.number}` }));
-                          setIsOpen(false); // Close dialog on tap
+                          const logEventName = contactsSourceType === 'rescuer' ? 'newRescuerAppLog' : 'newAppLog';
+                          window.dispatchEvent(new CustomEvent(logEventName, { detail: `Attempting to call ${contact.name}: ${contact.number}` }));
+                          setIsOpen(false);
                       }}
                     >
                       <Avatar className="w-10 h-10 border">
@@ -179,9 +224,7 @@ export function EmergencyContactsDialer() {
                 ))}
               </ul>
             ) : (
-                 <p className="text-sm text-muted-foreground text-center py-4">
-                    No personal contacts saved. Add them via your profile (User icon in header). Standard emergency numbers are listed.
-                </p>
+                 <p className="text-sm text-muted-foreground text-center py-4">{emptyMessage}</p>
             )}
           </div>
           <DialogFooter className="p-4 pt-2 border-t">
