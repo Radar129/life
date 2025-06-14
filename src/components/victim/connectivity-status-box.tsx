@@ -92,7 +92,7 @@ export function ConnectivityStatusBox() {
             ...prev,
             signalStrength: Math.floor(Math.random() * 5), // 0-4
         }));
-    }, 15000); // Update every 15 seconds
+    }, 5000); // Update every 5 seconds
 
     return () => clearInterval(intervalId);
 
@@ -139,7 +139,7 @@ export function ConnectivityStatusBox() {
           Device Connectivity Status
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Real-time overview of your device's critical systems. Device names are simulated.
+          Real-time overview of your device's critical systems. Device names and signal strength are simulated for demonstration.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 pt-3 sm:pt-4 text-sm">
@@ -150,7 +150,7 @@ export function ConnectivityStatusBox() {
           <StatusItem 
             icon={<Bluetooth className={`w-4 h-4 ${status.bluetoothOn ? 'text-blue-500' : 'text-muted-foreground'}`} />} 
             label="Bluetooth" 
-            value={status.bluetoothOn ? "ON (Device: R.A.D.A.R Host)" : "OFF"} 
+            value={status.bluetoothOn ? "ON (Device: R.A.D.A.R Host - Simulated)" : "OFF"} 
           />
           <StatusItem 
             icon={<Wifi className={`w-4 h-4 ${status.wifiConnected ? 'text-green-500' : 'text-muted-foreground'}`} />} 
