@@ -174,7 +174,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
 
 
   useEffect(() => {
-    performScanLogic(true); 
+    performScanLogic(false); // Initial scan is now silent for the "Refreshing Scan..." toast
 
     const intervalId = setInterval(() => {
       performScanLogic(false); 
@@ -385,3 +385,6 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
     </>
   );
 }
+
+
+    
