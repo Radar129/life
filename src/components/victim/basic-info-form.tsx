@@ -388,11 +388,10 @@ export function BasicInfoForm() {
                         <FormLabel htmlFor={`emergencyContact${contactIndex}CountryCode`} className="text-xs flex items-center gap-1"><Globe className="w-3 h-3"/>Country</FormLabel>
                         <Select
                           onValueChange={(value) => {
-                            field.onChange(value); // Update the current field
-                            // Synchronize other contact country codes
-                            if (contactIndex !== 1) form.setValue('emergencyContact1CountryCode', value);
-                            if (contactIndex !== 2) form.setValue('emergencyContact2CountryCode', value);
-                            if (contactIndex !== 3) form.setValue('emergencyContact3CountryCode', value);
+                            field.onChange(value); 
+                            if (value !== form.getValues('emergencyContact1CountryCode')) form.setValue('emergencyContact1CountryCode', value);
+                            if (value !== form.getValues('emergencyContact2CountryCode')) form.setValue('emergencyContact2CountryCode', value);
+                            if (value !== form.getValues('emergencyContact3CountryCode')) form.setValue('emergencyContact3CountryCode', value);
                           }}
                           value={field.value || ""}
                         >
@@ -437,7 +436,7 @@ export function BasicInfoForm() {
               name="customSOSMessage"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="customSOSMessage" className="text-xs flex items-center gap-1"><MessageSquare className="w-3 h-3"/>SOS Message Template</FormLabel>
+                  <FormLabel htmlFor="customSOSMessage" className="text-xs flex items-center gap-1"><MessageSquare className="w-3 h-3"/>Personalized SOS Message</FormLabel>
                   <FormControl>
                     <Textarea id="customSOSMessage" placeholder="Default: Emergency! I need help. My location is being broadcast." {...field} className="text-sm min-h-[80px]" maxLength={160}/>
                   </FormControl>
@@ -462,5 +461,7 @@ export function BasicInfoForm() {
   );
 }
 
+
+    
 
     
