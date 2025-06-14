@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, MessageSquare, Save, NotebookPen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { VictimBasicInfo } from '@/types/signals'; // Assuming type will be defined here
+import { Separator } from '@/components/ui/separator';
 
 const basicInfoSchema = z.object({
   name: z.string().optional(),
