@@ -70,20 +70,22 @@ export function AppHeader() {
             <Button 
               variant="ghost" 
               className="group flex items-center gap-2 rounded-full p-1 sm:pr-3 h-10 sm:h-auto focus-visible:ring-primary"
-              aria-label="Open User Profile"
+              aria-label={userInfo?.name ? `User profile for ${userInfo.name}` : "Open User Profile"}
             >
               <Avatar className="w-8 h-8 border-2 border-primary/30 group-hover:border-primary/70 transition-colors">
-                <AvatarImage src={userInfo?.profilePictureDataUrl || undefined} alt={userInfo?.name || 'User profile'} />
+                <AvatarImage 
+                  src={userInfo?.profilePictureDataUrl || undefined} 
+                  alt={userInfo?.name ? `${userInfo.name}'s profile picture` : 'User profile picture'} 
+                />
                 <AvatarFallback>
                   <UserCircle className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </AvatarFallback>
               </Avatar>
               {userInfo?.name && (
-                <span className="text-sm font-medium text-foreground hidden sm:inline truncate max-w-[100px] group-hover:text-primary transition-colors">
-                  {userInfo.name}
+                <span className="text-sm font-medium text-foreground hidden sm:inline truncate max-w-[150px] sm:max-w-[200px] group-hover:text-primary transition-colors">
+                  Hello, {userInfo.name}
                 </span>
               )}
-              {!userInfo?.name && <span className="sr-only">User Profile</span>}
             </Button>
           </DialogTrigger>
           <DialogContent className="lg:max-w-2xl p-0">
