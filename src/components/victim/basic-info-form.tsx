@@ -30,7 +30,7 @@ const genderOptions = [
 
 const countryCodes = [
   { name: "United States", code: "+1" },
-  { name: "Canada", code: "+1 CA" }, // Differentiated for display if needed, actual code still +1
+  { name: "Canada", code: "+1 CA" },
   { name: "United Kingdom", code: "+44" },
   { name: "India", code: "+91" },
   { name: "Australia", code: "+61" },
@@ -40,7 +40,7 @@ const countryCodes = [
   { name: "South Africa", code: "+27" },
   { name: "Japan", code: "+81" },
   { name: "China", code: "+86" },
-  { name: "Other/Manual", code: "MANUAL_CODE"}, // Changed from "" to "MANUAL_CODE"
+  { name: "Other/Manual", code: "MANUAL_CODE"},
 ];
 
 
@@ -156,13 +156,17 @@ export function BasicInfoForm() {
     detailsString += "\nEmergency Contacts:\n";
     for (let i = 1; i <= 3; i++) {
         const contactName = details[`emergencyContact${i}Name` as keyof VictimBasicInfo];
-        let countryCode = details[`emergencyContact${i}CountryCode` as keyof VictimBasicInfo];
+        let countryCodeValue = details[`emergencyContact${i}CountryCode` as keyof VictimBasicInfo];
         const contactPhone = details[`emergencyContact${i}Phone` as keyof VictimBasicInfo];
         
-        if (countryCode === "MANUAL_CODE") countryCode = ""; // Don't show "MANUAL_CODE" in copied text
+        let displayCountryCode = "";
+        if (countryCodeValue && countryCodeValue !== "MANUAL_CODE") {
+            displayCountryCode = countryCodeValue;
+        }
 
-        if (contactName || countryCode || contactPhone) {
-            detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${countryCode || ''}${contactPhone || 'N/A'}\n`;
+
+        if (contactName || displayCountryCode || contactPhone) {
+            detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${displayCountryCode}${contactPhone || 'N/A'}\n`;
         }
     }
     
@@ -271,7 +275,7 @@ export function BasicInfoForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel htmlFor="gender" className="text-xs flex items-center gap-1"><Users className="w-3 h-3"/>Gender</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger id="gender" className="text-sm">
                           <SelectValue placeholder="Select gender" />
@@ -295,7 +299,7 @@ export function BasicInfoForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel htmlFor="bloodGroup" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Blood Group</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger id="bloodGroup" className="text-sm">
                           <SelectValue placeholder="Select blood group" />
@@ -359,17 +363,17 @@ export function BasicInfoForm() {
 
             <Separator className="my-3"/>
             <p className="text-sm font-medium text-foreground">Emergency Contacts</p>
-            {[1, 2, 3].map(index => (
-              <div key={index} className="space-y-2 p-2 border rounded-md bg-muted/30">
-                <p className="text-xs font-semibold text-muted-foreground">Contact {index}</p>
+            {[1, 2, 3].map(contactIndex => (
+              <div key={contactIndex} className="space-y-2 p-2 border rounded-md bg-muted/30">
+                <p className="text-xs font-semibold text-muted-foreground">Contact {contactIndex}</p>
                 <FormField
                   control={form.control}
-                  name={`emergencyContact${index}Name` as keyof VictimBasicInfo}
+                  name={`emergencyContact${contactIndex}Name` as keyof VictimBasicInfo}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor={`emergencyContact${index}Name`} className="text-xs">Name</FormLabel>
+                      <FormLabel htmlFor={`emergencyContact${contactIndex}Name`} className="text-xs">Name</FormLabel>
                       <FormControl>
-                        <Input id={`emergencyContact${index}Name`} placeholder="Contact Name" {...field} className="text-sm"/>
+                        <Input id={`emergencyContact${contactIndex}Name`} placeholder="Contact Name" {...field} className="text-sm"/>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -378,13 +382,22 @@ export function BasicInfoForm() {
                 <div className="grid grid-cols-1 sm:grid-cols-[theme(spacing.40)_1fr] gap-2 items-end">
                   <FormField
                     control={form.control}
-                    name={`emergencyContact${index}CountryCode` as keyof VictimBasicInfo}
+                    name={`emergencyContact${contactIndex}CountryCode` as keyof VictimBasicInfo}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel htmlFor={`emergencyContact${index}CountryCode`} className="text-xs flex items-center gap-1"><Globe className="w-3 h-3"/>Country</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
+                        <FormLabel htmlFor={`emergencyContact${contactIndex}CountryCode`} className="text-xs flex items-center gap-1"><Globe className="w-3 h-3"/>Country</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value); // Update the current field
+                            // Synchronize other contact country codes
+                            if (contactIndex !== 1) form.setValue('emergencyContact1CountryCode', value);
+                            if (contactIndex !== 2) form.setValue('emergencyContact2CountryCode', value);
+                            if (contactIndex !== 3) form.setValue('emergencyContact3CountryCode', value);
+                          }}
+                          value={field.value || ""}
+                        >
                           <FormControl>
-                            <SelectTrigger id={`emergencyContact${index}CountryCode`} className="text-sm">
+                            <SelectTrigger id={`emergencyContact${contactIndex}CountryCode`} className="text-sm">
                               <SelectValue placeholder="Select Country" />
                             </SelectTrigger>
                           </FormControl>
@@ -402,12 +415,12 @@ export function BasicInfoForm() {
                   />
                   <FormField
                     control={form.control}
-                    name={`emergencyContact${index}Phone` as keyof VictimBasicInfo}
+                    name={`emergencyContact${contactIndex}Phone` as keyof VictimBasicInfo}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel htmlFor={`emergencyContact${index}Phone`} className="text-xs flex items-center gap-1"><Phone className="w-3 h-3"/>Phone Number</FormLabel>
+                        <FormLabel htmlFor={`emergencyContact${contactIndex}Phone`} className="text-xs flex items-center gap-1"><Phone className="w-3 h-3"/>Phone Number</FormLabel>
                         <FormControl>
-                          <Input id={`emergencyContact${index}Phone`} placeholder="Phone Number" {...field} className="text-sm"/>
+                          <Input id={`emergencyContact${contactIndex}Phone`} placeholder="Phone Number" {...field} className="text-sm"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -449,3 +462,5 @@ export function BasicInfoForm() {
   );
 }
 
+
+    
