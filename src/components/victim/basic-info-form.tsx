@@ -48,7 +48,7 @@ const countryCodes = [
 const basicInfoSchema = z.object({
   name: z.string().min(1, "Name is required."),
   dob: z.string().min(1, "Date of Birth is required."),
-  age: z.string().optional(), 
+  age: z.string().optional(),
   gender: z.string().min(1, "Gender is required."),
   bloodGroup: z.string().min(1, "Blood Group is required."),
   profilePictureDataUrl: z.string().optional(),
@@ -70,7 +70,7 @@ const basicInfoSchema = z.object({
 
 export function BasicInfoForm() {
   const { toast } = useToast();
-  const [isSaved, setIsSaved] = useState(false); // Tracks if the current form content matches a saved state
+  const [isSaved, setIsSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const defaultFormValuesRef = useRef<VictimBasicInfo>({
@@ -83,15 +83,15 @@ export function BasicInfoForm() {
     allergies: "",
     medications: "",
     conditions: "",
-    sharedEmergencyContactCountryCode: "+1", 
+    sharedEmergencyContactCountryCode: "+1",
     emergencyContact1Name: "",
-    emergencyContact1CountryCode: "+1", 
+    emergencyContact1CountryCode: "+1",
     emergencyContact1Phone: "",
     emergencyContact2Name: "",
-    emergencyContact2CountryCode: "+1", 
+    emergencyContact2CountryCode: "+1",
     emergencyContact2Phone: "",
     emergencyContact3Name: "",
-    emergencyContact3CountryCode: "+1", 
+    emergencyContact3CountryCode: "+1",
     emergencyContact3Phone: "",
     customSOSMessage: "Emergency! I need help. My location is being broadcast.",
   });
@@ -99,56 +99,56 @@ export function BasicInfoForm() {
   const form = useForm<VictimBasicInfo>({
     resolver: zodResolver(basicInfoSchema),
     defaultValues: defaultFormValuesRef.current,
-    mode: 'onChange', // Validate on change for immediate feedback
+    mode: 'onChange',
   });
 
   const onSubmit: SubmitHandler<VictimBasicInfo> = async (data) => {
     console.log("Basic Info Submitted:", data);
     localStorage.setItem('victimBasicInfo', JSON.stringify(data));
-    setIsSaved(true); // Mark current state as saved
-    form.reset(data, { keepValues: true, keepDirty: false, keepIsSubmitted: false }); // Resets dirty state
+    setIsSaved(true);
+    form.reset(data, { keepValues: true, keepDirty: false, keepIsSubmitted: false });
     toast({
       title: "Information Saved",
       description: "Your information has been saved locally on this device.",
     });
     window.dispatchEvent(new CustomEvent('victimInfoUpdated'));
   };
-  
+
   useEffect(() => {
     const savedInfo = localStorage.getItem('victimBasicInfo');
     if (savedInfo) {
       try {
         const parsedInfo = JSON.parse(savedInfo) as VictimBasicInfo;
         const formData = {
-          ...defaultFormValuesRef.current, 
-          ...parsedInfo, 
+          ...defaultFormValuesRef.current,
+          ...parsedInfo,
           dob: parsedInfo.dob ? parsedInfo.dob : undefined,
           profilePictureDataUrl: parsedInfo.profilePictureDataUrl || "",
         };
-        form.reset(formData); // Load saved data
-        
+        form.reset(formData);
+
         const effectiveSharedCode = form.getValues('sharedEmergencyContactCountryCode') || defaultFormValuesRef.current.sharedEmergencyContactCountryCode;
         form.setValue('emergencyContact1CountryCode', form.getValues('emergencyContact1CountryCode') || effectiveSharedCode);
         form.setValue('emergencyContact2CountryCode', form.getValues('emergencyContact2CountryCode') || effectiveSharedCode);
         form.setValue('emergencyContact3CountryCode', form.getValues('emergencyContact3CountryCode') || effectiveSharedCode);
 
-        setIsSaved(true); // Mark as initially saved if data was loaded
+        setIsSaved(true);
       } catch (e) {
         console.error("Failed to parse saved basic info", e);
-        form.reset(defaultFormValuesRef.current); // Reset to defaults on error
+        form.reset(defaultFormValuesRef.current);
         setIsSaved(false);
         toast({ title: "Error", description: "Could not load previously saved information.", variant: "destructive"});
       }
     } else {
-        form.reset(defaultFormValuesRef.current); // Reset to defaults if no saved data
+        form.reset(defaultFormValuesRef.current);
         const defaultSharedCode = defaultFormValuesRef.current.sharedEmergencyContactCountryCode;
         form.setValue('emergencyContact1CountryCode', defaultSharedCode);
         form.setValue('emergencyContact2CountryCode', defaultSharedCode);
         form.setValue('emergencyContact3CountryCode', defaultSharedCode);
-        setIsSaved(false); 
+        setIsSaved(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.reset, form.setValue, toast]); // form is stable, so form.reset and form.setValue are too
+  }, [form.reset, form.setValue, toast]);
 
   const handleFieldChange = (fieldUpdateFn: () => void) => {
     fieldUpdateFn();
@@ -183,7 +183,7 @@ export function BasicInfoForm() {
   const handleRemovePhoto = () => {
     form.setValue('profilePictureDataUrl', '', { shouldValidate: true, shouldDirty: true });
     if(fileInputRef.current) {
-        fileInputRef.current.value = ""; 
+        fileInputRef.current.value = "";
     }
     setIsSaved(false);
   };
@@ -204,7 +204,7 @@ export function BasicInfoForm() {
     if (details.age) detailsString += `Age: ${details.age}\n`;
     if (details.gender) detailsString += `Gender: ${details.gender}\n`;
     if (details.bloodGroup) detailsString += `Blood Group: ${details.bloodGroup}\n`;
-    
+
     detailsString += "\nMedical Information:\n";
     if (details.allergies) detailsString += `Allergies: ${details.allergies}\n`;
     if (details.medications) detailsString += `Medications: ${details.medications}\n`;
@@ -212,20 +212,20 @@ export function BasicInfoForm() {
 
     detailsString += "\nEmergency Contacts:\n";
     const sharedCountryCodeValue = details.sharedEmergencyContactCountryCode;
-    
+
     for (let i = 1; i <= 3; i++) {
         const contactName = details[`emergencyContact${i}Name` as keyof VictimBasicInfo];
         let contactCountryCode = details[`emergencyContact${i}CountryCode` as keyof VictimBasicInfo];
         const contactPhone = details[`emergencyContact${i}Phone` as keyof VictimBasicInfo];
-        
-        let finalCountryCode = contactCountryCode !== "MANUAL_CODE" && contactCountryCode ? contactCountryCode : sharedCountryCodeValue;
-        if (finalCountryCode === "MANUAL_CODE") finalCountryCode = ""; 
 
-        if (contactName || contactPhone) { 
+        let finalCountryCode = contactCountryCode !== "MANUAL_CODE" && contactCountryCode ? contactCountryCode : sharedCountryCodeValue;
+        if (finalCountryCode === "MANUAL_CODE") finalCountryCode = "";
+
+        if (contactName || contactPhone) {
             detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${finalCountryCode || ''}${contactPhone || 'N/A'}\n`;
         }
     }
-    
+
     if (details.customSOSMessage) detailsString += `\nCustom SOS Message: ${details.customSOSMessage}\n`;
 
     navigator.clipboard.writeText(detailsString.trim())
@@ -241,10 +241,10 @@ export function BasicInfoForm() {
   const handleClearForm = () => {
     form.reset(defaultFormValuesRef.current);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""; 
+      fileInputRef.current.value = "";
     }
     localStorage.removeItem('victimBasicInfo');
-    setIsSaved(false); 
+    setIsSaved(false);
     toast({
       title: "Information Cleared",
       description: "All your personal and emergency details have been removed from this device.",
@@ -256,8 +256,8 @@ export function BasicInfoForm() {
 
   const getButtonText = () => {
     if (isSubmitting) return "Saving...";
-    if (isSaved && !isDirty) return "Update Information"; // If pristine and previously saved state
-    return "Save Information"; // Default for new or dirty form
+    if (isSaved && !isDirty) return "Update Information";
+    return "Save Information";
   };
 
   const getButtonVariant = (): "default" | "outline" => {
@@ -271,7 +271,7 @@ export function BasicInfoForm() {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
         <div className="space-y-4 flex-grow overflow-y-auto max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-16rem)] p-1 pr-3">
-          
+
           <div className="flex flex-col items-center space-y-2 my-3">
             <Avatar className="w-24 h-24 border-2 border-primary shadow-md">
               <AvatarImage src={form.watch('profilePictureDataUrl') || undefined} alt={form.watch('name') || 'User Profile'} />
@@ -291,7 +291,7 @@ export function BasicInfoForm() {
             </div>
             <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/*" className="hidden" />
           </div>
-          
+
           <p className="text-sm font-medium text-foreground">Personal Information</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField
@@ -334,9 +334,7 @@ export function BasicInfoForm() {
                         mode="single"
                         selected={field.value ? new Date(field.value) : undefined}
                         onSelect={(date) => {
-                           // handleDobChange will call setIsSaved(false)
-                           handleDobChange(date); 
-                           // field.onChange is implicitly handled by form.setValue in handleDobChange
+                           handleDobChange(date);
                         }}
                         disabled={(date) =>
                           date > new Date() || date < new Date("1900-01-01")
@@ -488,7 +486,7 @@ export function BasicInfoForm() {
                     <SelectTrigger id="sharedEmergencyContactCountryCode" className="text-sm">
                        <SelectValue placeholder="Select Country">
                         {(() => {
-                          const selectedCode = field.value; 
+                          const selectedCode = field.value;
                           const country = countryCodes.find(c => c.code === selectedCode);
                           return country ? (
                             <span className="flex items-center line-clamp-none">
@@ -545,7 +543,7 @@ export function BasicInfoForm() {
               />
             </div>
           ))}
-          
+
           <Separator className="my-3"/>
           <p className="text-sm font-medium text-foreground">Custom SOS Message</p>
            <FormField
@@ -564,10 +562,10 @@ export function BasicInfoForm() {
 
         </div>
         <div className="flex flex-col sm:flex-row justify-end items-center gap-2 pt-4 border-t mt-auto">
-           <Button 
-            type="submit" 
-            variant={getButtonVariant()} 
-            size="sm" 
+           <Button
+            type="submit"
+            variant={getButtonVariant()}
+            size="sm"
             className="text-sm w-full sm:w-auto order-1 sm:order-3"
             disabled={!isValid || isSubmitting}
           >
@@ -578,21 +576,21 @@ export function BasicInfoForm() {
             )}
             {getButtonText()}
           </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm" 
-            onClick={handleClearForm} 
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleClearForm}
             className="text-sm w-full sm:w-auto text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive-foreground order-2 sm:order-2"
             disabled={isSubmitting}
           >
             <Trash2 className="mr-2 h-4 w-4"/> Clear All
           </Button>
-          <Button 
-            type="button" 
-            variant="secondary" 
-            size="sm" 
-            onClick={handleCopyDetails} 
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleCopyDetails}
             className="text-sm w-full sm:w-auto order-3 sm:order-1"
             disabled={isSubmitting}
           >
@@ -603,7 +601,5 @@ export function BasicInfoForm() {
     </Form>
   );
 }
-
-    
 
     
