@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bluetooth, Search, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin, AlertTriangle as AlertTriangleIcon, Info, UserCircle, Trash2 } from 'lucide-react';
+import { Bluetooth, Search, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin, AlertTriangle as AlertTriangleIcon, Info, UserCircle, Trash2, Navigation } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DetectedSignal as BaseDetectedSignal, VictimBasicInfo } from '@/types/signals';
@@ -36,65 +36,87 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
   const { toast } = useToast();
   const [selectedVictimDetails, setSelectedVictimDetails] = useState<VictimBasicInfo | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [rescuerLocation, setRescuerLocation] = useState<{ lat: number; lon: number } | null>(null);
   
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setRescuerLocation({
+            lat: parseFloat(position.coords.latitude.toFixed(4)),
+            lon: parseFloat(position.coords.longitude.toFixed(4)),
+          });
+          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Rescuer location obtained: LAT ${position.coords.latitude.toFixed(4)}, LON ${position.coords.longitude.toFixed(4)}` }));
+        },
+        () => {
+          console.warn("Could not get rescuer location for SOS Scanner.");
+          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Could not get rescuer location." }));
+        }
+      );
+    } else {
+       console.warn("Geolocation is not supported by this browser for SOS Scanner.");
+       window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Geolocation not supported by browser." }));
+    }
+  }, []);
+
+
   const startScan = async () => {
     setStatus("scanning");
     setError(null);
     
+    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Check for local SOS initiated." }));
     toast({ title: "Checking Local SOS", description: "Looking for active SOS signal from this device..." });
 
     setTimeout(() => {
       const storedSignalData = localStorage.getItem(LOCAL_STORAGE_SOS_KEY);
-      let updatedSignalsList = [...detectedSignals]; // Work with a copy of the prop
+      let updatedSignalsList = [...detectedSignals]; 
 
       if (storedSignalData) {
         try {
-          const signalFromStorage: BaseDetectedSignal = JSON.parse(storedSignalData); // Base, status managed here
+          const signalFromStorage: BaseDetectedSignal = JSON.parse(storedSignalData); 
           const existingSignalIndex = updatedSignalsList.findIndex(s => s.id === signalFromStorage.id);
           
           const newSignalData = {
             ...signalFromStorage,
-            rssi: -50 - Math.floor(Math.random() * 10), // Freshen RSSI
+            rssi: -50 - Math.floor(Math.random() * 10), 
             timestamp: Date.now(),
           };
 
           if (existingSignalIndex !== -1) {
-            // Update existing signal, preserve its current user-set status or set to Active
             updatedSignalsList[existingSignalIndex] = {
-              ...newSignalData, // Fresh data from storage
+              ...newSignalData,
               status: updatedSignalsList[existingSignalIndex].status && updatedSignalsList[existingSignalIndex].status !== "Signal Lost (Local)"
                 ? updatedSignalsList[existingSignalIndex].status 
                 : "Active (Local)",
             };
             toast({ title: "Local SOS Signal Updated", description: `Tracking: ${signalFromStorage.name}` });
+            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Updated active local SOS for ${signalFromStorage.name}` }));
           } else {
-            // Add new signal
             updatedSignalsList.push({
               ...newSignalData,
-              status: "Active (Local)", // Default status for newly detected local signal
+              status: "Active (Local)", 
             });
             toast({ title: "Local SOS Signal Found", description: `Tracking: ${signalFromStorage.name}` });
+            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Detected new active local SOS for ${signalFromStorage.name}` }));
           }
-          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Detected/Updated active local SOS for ${signalFromStorage.name}` }));
         } catch (e) {
           console.error("Error parsing signal from localStorage:", e);
           setError("Could not read local SOS signal data.");
           toast({ title: "Local SOS Error", description: "Could not read local SOS data. It might be corrupted.", variant: "destructive" });
-          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Error parsing local SOS data from localStorage.` }));
+          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Error parsing local SOS data from localStorage.` }));
         }
-      } else { // No local signal found in storage
+      } else { 
         const existingSignalIndex = updatedSignalsList.findIndex(s => s.id === 'local_sos_signal');
         if (existingSignalIndex !== -1) {
-          // Mark existing local signal as inactive or lost, but keep its other details
           if (updatedSignalsList[existingSignalIndex].status !== "Signal Lost (Local)") {
              updatedSignalsList[existingSignalIndex].status = "Signal Lost (Local)";
-             updatedSignalsList[existingSignalIndex].rssi = -100; // Indicate poor/lost signal
+             updatedSignalsList[existingSignalIndex].rssi = -100; 
              toast({ title: "Local SOS Signal Lost", description: `Previously active SOS for ${updatedSignalsList[existingSignalIndex].name} is no longer broadcasting.` });
-             window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Local SOS signal previously for ${updatedSignalsList[existingSignalIndex].name} is no longer active.` }));
+             window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Local SOS signal previously for ${updatedSignalsList[existingSignalIndex].name} is no longer active.` }));
           }
         } else {
           toast({ title: "No Local SOS Signal", description: "No active SOS signal found from this device." });
-          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: No active local SOS signal found on this device.` }));
+          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: No active local SOS signal found on this device.` }));
         }
       }
       
@@ -110,15 +132,15 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
         const victimInfo = JSON.parse(storedVictimInfoRaw) as VictimBasicInfo;
         setSelectedVictimDetails(victimInfo);
         setIsDetailsDialogOpen(true);
-        window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Viewing profile for signal ID ${signalId} (local user: ${victimInfo.name || 'N/A'}).` }));
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Viewing profile for signal ID ${signalId} (local user: ${victimInfo.name || 'N/A'}).` }));
       } catch (e) {
         console.error("Error parsing victim info for details dialog:", e);
         toast({ title: "Error", description: "Could not load victim details.", variant: "destructive" });
-        window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Error loading profile for signal ID ${signalId}.` }));
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Error loading profile for signal ID ${signalId}.` }));
       }
     } else {
       toast({ title: "No Details", description: "Victim profile information not found locally for this signal.", variant: "default" });
-      window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Victim profile not found locally for signal ID ${signalId}.` }));
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Victim profile not found locally for signal ID ${signalId}.` }));
     }
   };
 
@@ -128,7 +150,6 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
     );
     setDetectedSignals(updatedSignals);
 
-    // If this is the local signal, update its status in its own persisted storage too
     if (signalId === 'local_sos_signal') {
         const signalFromStorageRaw = localStorage.getItem(LOCAL_STORAGE_SOS_KEY);
         if (signalFromStorageRaw) {
@@ -141,7 +162,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
             }
         }
     }
-    window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Updated status for ${signalId} to ${newStatus}.` }));
+    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Updated status for signal ${signalId} to ${newStatus}.` }));
   };
 
   const handleRemoveSignal = (signalIdToRemove: string) => {
@@ -149,9 +170,21 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
     const remainingSignals = detectedSignals.filter(signal => signal.id !== signalIdToRemove);
     setDetectedSignals(remainingSignals);
     toast({ title: "Signal Removed", description: `Signal for ${signalToRemove?.name || signalIdToRemove} has been removed.` });
-    window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Manually removed signal ${signalToRemove?.name || signalIdToRemove} from the list.` }));
+    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Manually removed signal ${signalToRemove?.name || signalIdToRemove} from the list.` }));
   };
 
+  const openGoogleMapsDirections = (victimLat: number, victimLon: number) => {
+    let url: string;
+    if (rescuerLocation) {
+      url = `https://www.google.com/maps/dir/?api=1&origin=${rescuerLocation.lat},${rescuerLocation.lon}&destination=${victimLat},${victimLon}&travelmode=driving`;
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Opening Google Maps directions from ${rescuerLocation.lat},${rescuerLocation.lon} to ${victimLat},${victimLon}.` }));
+    } else {
+      url = `https://www.google.com/maps/search/?api=1&query=${victimLat},${victimLon}`;
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Opening Google Maps for victim at ${victimLat},${victimLon} (rescuer location unavailable).` }));
+      console.warn("Rescuer location not available for directions, opening victim location directly.");
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const getSignalStrengthIcon = (rssi: number | undefined) => {
     if (rssi === undefined) return <SignalMedium className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />;
@@ -198,7 +231,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
           )}
 
           {detectedSignals.length > 0 ? (
-            <ul className="space-y-0.5 border rounded-md max-h-60 sm:max-h-72 overflow-y-auto">
+            <ul className="space-y-0.5 border rounded-md max-h-[calc(100vh-25rem)] sm:max-h-[calc(100vh-20rem)] overflow-y-auto">
               {detectedSignals.map((signal) => (
                 <ListItemWrapper key={signal.id}>
                   <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2 sm:gap-3">
@@ -220,15 +253,27 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
                           {signal.advertisedName && signal.advertisedName !== signal.name ? `Raw Signal: ${signal.advertisedName}` : `ID: ${signal.id}`}
                         </p>
                     </div>
-                    <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1 sm:mt-0">
+                    <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1 sm:mt-0 flex-wrap">
                        <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={() => handleViewDetails(signal.id)}
-                        className="text-xs h-8 w-full sm:w-auto"
+                        className="text-xs h-8 w-full sm:w-auto flex-shrink-0"
                       >
                         <UserCircle className="mr-1.5 h-3.5 w-3.5" /> View Profile
                       </Button>
+                       {signal.lat && signal.lon && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openGoogleMapsDirections(signal.lat!, signal.lon!)}
+                            className="text-xs h-8 w-full sm:w-auto flex-shrink-0"
+                            disabled={!signal.lat || !signal.lon}
+                        >
+                            <Navigation className="mr-1.5 h-3.5 w-3.5" />
+                            Directions
+                        </Button>
+                       )}
                       <div className="w-full sm:w-40 flex-shrink-0">
                         <Select
                           value={signal.status || "Pending"}
@@ -249,7 +294,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
                        <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive hover:bg-destructive/10 w-8 h-8 p-0 self-center sm:self-auto"
+                          className="text-destructive hover:bg-destructive/10 w-8 h-8 p-0 self-center sm:self-auto flex-shrink-0"
                           onClick={() => handleRemoveSignal(signal.id)}
                           aria-label={`Remove signal for ${signal.name}`}
                         >
