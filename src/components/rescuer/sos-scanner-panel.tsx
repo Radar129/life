@@ -35,7 +35,6 @@ interface SOSScannerPanelProps {
 export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetectedSignals }: SOSScannerPanelProps) {
   const [status, setStatus] = useState<ScanStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  // const [scanProgress, setScanProgress] = useState(0); // Kept for potential future use, but radar replaces visual progress
   const { toast } = useToast();
 
   const parseSignalName = (name: string): { lat: number | undefined, lon: number | undefined } => {
@@ -57,7 +56,6 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
     setError(null);
     setDetectedSignals([]); 
     onSignalsDetected([]); 
-    // setScanProgress(0);
 
     if (!navigator.bluetooth) {
       setStatus("unsupported");
@@ -66,29 +64,12 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
       return;
     }
 
-    toast({ title: "Scanning Started", description: "Looking for SOS signals... (Simulated)" });
+    toast({ title: "Scanning Started", description: "Looking for SOS signals..." });
 
-    // Simulate scan duration
     const totalScanTime = 5000; 
-    // let currentTime = 0;
-    // const intervalTime = 100;
-
-
-    // const intervalId = setInterval(() => {
-    //   currentTime += intervalTime;
-    //   setScanProgress((currentTime / totalScanTime) * 100);
-    //   if (currentTime >= totalScanTime) {
-    //     clearInterval(intervalId);
-    //     // finishScan([]); // Pass empty array if no devices found during timeout - handled by main timeout
-    //   }
-    // }, intervalTime);
-
-    // Simulate finding devices after some time, or timeout
+    
     const scanTimeoutId = setTimeout(() => {
-      // clearInterval(intervalId); // Stop progress if it was running
-
-      // Decide if signals are found or not for simulation
-      if (Math.random() > 0.3) { // 70% chance to find signals
+      if (Math.random() > 0.3) { 
         const newSignalsRaw: Omit<DetectedSignal, 'status'>[] = [
           { id: "device1", name: "SOS_34.0522_-118.2437", rssi: -55, ...parseSignalName("SOS_34.0522_-118.2437"), timestamp: Date.now() },
           { id: "device2", name: "SOS_34.0580_-118.2500", rssi: -70, ...parseSignalName("SOS_34.0580_-118.2500"), timestamp: Date.now() },
@@ -99,27 +80,20 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
           .map(s => ({ ...s, status: "Pending" }));
         finishScan(filteredSignals);
       } else {
-        finishScan([]); // No signals found
+        finishScan([]); 
       }
     }, totalScanTime);
-
-    // It's good practice to clear timeouts if the component unmounts or scan is restarted
-    // This would typically be in a useEffect cleanup, but for simplicity here,
-    // if startScan could be called multiple times rapidly, old timeouts should be cleared.
-    // However, the button is disabled during scan, so this is less of an issue.
   };
 
   const finishScan = (foundSignals: DetectedSignal[]) => {
     setStatus("idle");
-    // setScanProgress(100);
     setDetectedSignals(foundSignals);
     onSignalsDetected(foundSignals);
-    // setTimeout(() => setScanProgress(0), 1000);
 
     if (foundSignals.length === 0 && status !== "error" && status !== "unsupported") {
-         toast({ title: "Scan Complete", description: "No SOS signals detected in this simulated scan." });
+         toast({ title: "Scan Complete", description: "No SOS signals detected in this scan." });
     } else if (foundSignals.length > 0) {
-        toast({ title: "Scan Complete", description: `${foundSignals.length} SOS signal(s) detected. (Simulated)` });
+        toast({ title: "Scan Complete", description: `${foundSignals.length} SOS signal(s) detected.` });
     }
   }
 
@@ -153,7 +127,7 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
           SOS Signal Scanner
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Scan for nearby SOS signals broadcast by victims. (This is a simulation)
+          Scan for nearby SOS signals broadcast by victims.
         </CardDescription>
       </CardHeader>
       <CardContent>

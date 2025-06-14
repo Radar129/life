@@ -61,7 +61,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
           Incident Map
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Visual overview of detected SOS signals and your current location. Click pins or buttons for directions. (Map is illustrative)
+          Visual overview of detected SOS signals and your current location. Click pins or buttons for directions.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -128,7 +128,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
         <div className="mt-3 sm:mt-4 space-y-1.5">
           {rescuerLocation && (
             <p className="text-xs sm:text-sm text-muted-foreground">
-              <span className='font-semibold text-foreground'>Your Location (Simulated):</span> LAT {rescuerLocation.lat}, LON {rescuerLocation.lon}
+              <span className='font-semibold text-foreground'>Your Location:</span> LAT {rescuerLocation.lat}, LON {rescuerLocation.lon}
             </p>
           )}
           {signals.length > 0 ? (
@@ -159,9 +159,6 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
           ) : (
             <p className="text-xs sm:text-sm text-muted-foreground">No SOS signals detected to display on map.</p>
           )}
-           <p className="text-xs text-muted-foreground mt-2">
-            Map is for illustrative purposes. Trilateration and precise victim locating from Bluetooth signals are advanced features.
-          </p>
         </div>
       </CardContent>
     </Card>

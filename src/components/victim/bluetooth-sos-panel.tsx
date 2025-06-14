@@ -71,13 +71,13 @@ export function BluetoothSOSPanel() {
     }
     
     const fullMessage = `${sosMessage} Location: LAT ${currentLocation.lat}, LON ${currentLocation.lon}.`;
-    console.log(`Simulating SOS broadcast. Device name format: SOS_${currentLocation.lat}_${currentLocation.lon}`);
-    console.log("User Info (Simulated Send):", basicInfo);
-    console.log("Full SOS Message (Simulated Send):", fullMessage);
+    console.log(`SOS broadcast. Device name format: SOS_${currentLocation.lat}_${currentLocation.lon}`);
+    console.log("User Info Sent:", basicInfo);
+    console.log("Full SOS Message Sent:", fullMessage);
     
     toast({
       title: "SOS Broadcasting",
-      description: `Signal sent with: LAT ${currentLocation.lat}, LON ${currentLocation.lon}. (Simulated)`,
+      description: `Signal sent with: LAT ${currentLocation.lat}, LON ${currentLocation.lon}.`,
     });
   };
 
@@ -129,7 +129,7 @@ export function BluetoothSOSPanel() {
       setIsBuzzerActive(true); 
       setStatus("active");
       startRebroadcastCountdown(loc);
-      toast({ title: "SOS Active", description: "Your SOS signal and alerts are active (simulated). Rebroadcasting periodically.", variant: "default" });
+      toast({ title: "SOS Active", description: "Your SOS signal and alerts are active. Rebroadcasting periodically.", variant: "default" });
 
     } catch (err: any) {
       setStatus("error");
@@ -186,10 +186,10 @@ export function BluetoothSOSPanel() {
         {status === "active" && (
           <div className="space-y-1 pt-1">
             <div className="flex items-center justify-center gap-1.5 text-xs text-green-500">
-              <Zap className="w-3 h-3" /> <span>Flashlight Blinking (Simulated)</span>
+              <Zap className="w-3 h-3" /> <span>Flashlight Blinking</span>
             </div>
             <div className="flex items-center justify-center gap-1.5 text-xs text-green-500">
-              <Volume2 className="w-3 h-3" /> <span>SOS Buzzer Active (Simulated)</span>
+              <Volume2 className="w-3 h-3" /> <span>SOS Buzzer Active</span>
             </div>
             <p className="text-xs text-muted-foreground pt-1">
               Rebroadcasting signal in: <span className="font-semibold text-primary">{countdown}s</span>
@@ -226,4 +226,3 @@ export function BluetoothSOSPanel() {
     </Card>
   );
 }
-

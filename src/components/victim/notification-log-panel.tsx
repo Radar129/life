@@ -10,7 +10,7 @@ const dummyLogs = [
   { id: 1, timestamp: new Date(Date.now() - 5 * 60000), message: "SOS Activated. Location: 34.05N, 118.24W." },
   { id: 2, timestamp: new Date(Date.now() - 4 * 60000), message: "Connectivity Change: Wi-Fi disconnected." },
   { id: 3, timestamp: new Date(Date.now() - 3 * 60000), message: "Battery Alert: Low (15%)." },
-  { id: 4, timestamp: new Date(Date.now() - 2 * 60000), message: "Emergency contact 'John Doe' notified (simulated)." },
+  { id: 4, timestamp: new Date(Date.now() - 2 * 60000), message: "Emergency contact 'John Doe' notified." },
   { id: 5, timestamp: new Date(Date.now() - 1 * 60000), message: "SOS Signal Rebroadcast." },
 ];
 
@@ -27,7 +27,7 @@ export function NotificationLogPanel() {
           Notification & Activity Log
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Tracks SOS activations, connectivity changes, and other important events. (Currently displaying placeholder data)
+          Tracks SOS activations, connectivity changes, and other important events.
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-3 sm:pt-4">

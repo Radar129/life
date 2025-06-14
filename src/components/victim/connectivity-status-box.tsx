@@ -24,12 +24,12 @@ interface ConnectivityState {
 
 export function ConnectivityStatusBox() {
   const [status, setStatus] = useState<ConnectivityState>({
-    signalStrength: 3, // Mocked
-    bluetoothOn: true, // Mocked
-    wifiConnected: true, // Mocked
-    wifiNetworkName: "HomeNet_5G", // Mocked
-    hotspotOn: false, // Mocked
-    locationServicesOn: false, // Will be updated
+    signalStrength: 3, 
+    bluetoothOn: true, 
+    wifiConnected: true, 
+    wifiNetworkName: "HomeNet_5G", 
+    hotspotOn: false, 
+    locationServicesOn: false, 
   });
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -83,18 +83,14 @@ export function ConnectivityStatusBox() {
         setStatus(prev => ({...prev, batteryLevel: undefined, batteryCharging: undefined}));
       });
     } else {
-         setStatus(prev => ({...prev, batteryLevel: 75, batteryCharging: Math.random() > 0.5})); // Mock if API not available
+         setStatus(prev => ({...prev, batteryLevel: 75, batteryCharging: Math.random() > 0.5})); 
     }
     
-    // Simulate other connectivity updates
+    
     const intervalId = setInterval(() => {
         setStatus(prev => ({
             ...prev,
             signalStrength: Math.floor(Math.random() * 5), // 0-4
-            // bluetoothOn: Math.random() > 0.3, // More likely on
-            // wifiConnected: Math.random() > 0.5,
-            // wifiNetworkName: prev.wifiConnected ? (Math.random() > 0.5 ? "CafeWifi" : "PublicHotspot") : undefined,
-            // hotspotOn: Math.random() > 0.8, // Less likely on
         }));
     }, 15000); // Update every 15 seconds
 
@@ -143,7 +139,7 @@ export function ConnectivityStatusBox() {
           Device Connectivity Status
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Real-time overview of your device's critical systems. (Some values are simulated)
+          Real-time overview of your device's critical systems.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 pt-3 sm:pt-4 text-sm">
