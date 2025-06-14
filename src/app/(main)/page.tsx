@@ -1,6 +1,5 @@
 
 import { ModeSelector } from '@/components/home/mode-selector';
-import { PanicButton } from '@/components/home/panic-button';
 
 export default function HomePage() {
   return (
@@ -14,7 +13,7 @@ export default function HomePage() {
         </p>
       </div>
       
-      <PanicButton />
+      {/* PanicButton was here */}
 
       <div className="w-full border-t border-border my-6 sm:my-10 max-w-md"></div>
 
