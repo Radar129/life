@@ -17,6 +17,16 @@ import { useState, useEffect } from 'react';
 import type { VictimBasicInfo } from '@/types/signals';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+const getInitials = (name?: string): string => {
+  if (!name) return '';
+  const names = name.trim().split(/\s+/); // Split by any whitespace and remove leading/trailing
+  if (names.length === 0 || names[0] === "") return '';
+  if (names.length === 1) {
+    return names[0].substring(0, Math.min(2, names[0].length)).toUpperCase();
+  }
+  return (names[0][0] + (names[names.length - 1][0] || '')).toUpperCase();
+};
+
 export function AppHeader() {
   const [userInfo, setUserInfo] = useState<VictimBasicInfo | null>(null);
 
@@ -78,12 +88,18 @@ export function AppHeader() {
                   alt={userInfo?.name ? `${userInfo.name}'s profile picture` : 'User profile picture'} 
                 />
                 <AvatarFallback>
-                  <UserCircle className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  {userInfo?.name && getInitials(userInfo.name) ? (
+                    <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">
+                      {getInitials(userInfo.name)}
+                    </span>
+                  ) : (
+                    <UserCircle className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  )}
                 </AvatarFallback>
               </Avatar>
               {userInfo?.name && (
                 <span className="text-sm font-medium text-foreground hidden sm:inline truncate max-w-[150px] sm:max-w-[200px] group-hover:text-primary transition-colors">
-                  Hello, {userInfo.name}
+                  Hello, {userInfo.name.split(' ')[0]}
                 </span>
               )}
             </Button>
