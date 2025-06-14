@@ -1,26 +1,35 @@
 
 "use client";
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ListChecks, Copy } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 
-// Dummy log entries for now
-const dummyLogs = [
-  { id: 1, timestamp: new Date(Date.now() - 5 * 60000), message: "SOS Activated. Location: 34.05N, 118.24W." },
-  { id: 2, timestamp: new Date(Date.now() - 4 * 60000), message: "Connectivity Change: Wi-Fi disconnected." },
-  { id: 3, timestamp: new Date(Date.now() - 3 * 60000), message: "Battery Alert: Low (15%)." },
-  { id: 4, timestamp: new Date(Date.now() - 2 * 60000), message: "Emergency contact 'John Doe' notified." },
-  { id: 5, timestamp: new Date(Date.now() - 1 * 60000), message: "SOS Signal Rebroadcast." },
-];
-
+interface LogEntry {
+  id: number;
+  timestamp: Date;
+  message: string;
+}
 
 export function NotificationLogPanel() {
   const { toast } = useToast();
-  // In a real app, logs would be fetched from localStorage or a state management solution
-  const logs = dummyLogs; // Using dummy logs for prototype
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
+  useEffect(() => {
+    // Generate logs on the client side after mount to avoid hydration mismatch
+    const generatedLogs: LogEntry[] = [
+      { id: 1, timestamp: new Date(Date.now() - 5 * 60000), message: "SOS Activated. Location: 34.05N, 118.24W." },
+      { id: 2, timestamp: new Date(Date.now() - 4 * 60000), message: "Connectivity Change: Wi-Fi disconnected." },
+      { id: 3, timestamp: new Date(Date.now() - 3 * 60000), message: "Battery Alert: Low (15%)." },
+      { id: 4, timestamp: new Date(Date.now() - 2 * 60000), message: "Emergency contact 'John Doe' notified." },
+      { id: 5, timestamp: new Date(Date.now() - 1 * 60000), message: "SOS Signal Rebroadcast." },
+    ];
+    setLogs(generatedLogs);
+  }, []);
+
 
   const handleCopyLog = () => {
     if (logs.length === 0) {
@@ -71,7 +80,7 @@ export function NotificationLogPanel() {
             </ul>
           </ScrollArea>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No activity logged yet.</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No activity logged yet. {logs.length === 0 && typeof window !== 'undefined' ? '' : '(Loading logs...)'}</p>
         )}
       </CardContent>
       <CardFooter className="flex justify-end p-4 border-t">
@@ -82,3 +91,4 @@ export function NotificationLogPanel() {
     </Card>
   );
 }
+
