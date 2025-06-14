@@ -116,7 +116,7 @@ export function VictimDetailsDialog({ victimInfo, isOpen, onOpenChange }: Victim
           )}
         </div>
 
-        <DialogFooter className="flex flex-row justify-end space-x-2 p-4 border-t sticky bottom-0 bg-background z-10">
+        <DialogFooter className="flex flex-row justify-end space-x-2 p-4 border-t bg-background">
           <DialogClose asChild>
             <Button type="button" variant="outline" size="sm">Close</Button>
           </DialogClose>
