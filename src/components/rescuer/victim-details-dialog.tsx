@@ -1,7 +1,7 @@
 
 "use client";
 
-import * as React from 'react'; // Added React import
+import * as React from 'react';
 import type { VictimBasicInfo } from '@/types/signals';
 import {
   Dialog,
@@ -116,7 +116,7 @@ export function VictimDetailsDialog({ victimInfo, isOpen, onOpenChange }: Victim
           )}
         </div>
 
-        <DialogFooter className="p-4 border-t sticky bottom-0 bg-background z-10">
+        <DialogFooter className="flex flex-row justify-end space-x-2 p-4 border-t sticky bottom-0 bg-background z-10">
           <DialogClose asChild>
             <Button type="button" variant="outline" size="sm">Close</Button>
           </DialogClose>
