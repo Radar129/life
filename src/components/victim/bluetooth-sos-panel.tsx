@@ -213,7 +213,12 @@ export function BluetoothSOSPanel() {
           </Button>
         )}
         {(status === "active" || status === "activating") && (
-          <Button onClick={deactivateSOS} variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base py-3 h-14">
+          <Button 
+            onClick={deactivateSOS} 
+            variant="outline" 
+            size="lg" 
+            className="w-full sm:w-auto text-sm sm:text-base py-3 h-14 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
+          >
             <XCircle className="mr-2 h-5 w-5" /> Deactivate SOS
           </Button>
         )}
