@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { HeartPulse, UserCircle } from 'lucide-react'; // Removed ShieldCheck, Settings
+import { HeartPulse, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import { BasicInfoForm } from '@/components/victim/basic-info-form';
 import { useState, useEffect } from 'react';
-import type { VictimBasicInfo } from '@/types/signals'; // Removed RescuerProfileInfo
+import type { VictimBasicInfo } from '@/types/signals';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { usePathname } from 'next/navigation'; // Import usePathname
 
 const getInitials = (name?: string): string => {
   if (!name) return '';
@@ -29,6 +30,7 @@ const getInitials = (name?: string): string => {
 
 export function AppHeader() {
   const [victimInfo, setVictimInfo] = useState<VictimBasicInfo | null>(null);
+  const pathname = usePathname(); // Get the current pathname
 
   const loadVictimInfo = () => {
     if (typeof window !== 'undefined') {
@@ -70,6 +72,7 @@ export function AppHeader() {
     };
   }, []);
 
+  const showUserProfileSection = pathname === '/victim'; // Condition to show the profile section
 
   return (
     <header className="bg-card/80 backdrop-blur-md sticky top-0 z-50 border-b shadow-sm">
@@ -79,49 +82,51 @@ export function AppHeader() {
           <span className='font-headline'>R.A.D.A.R</span>
         </Link>
         
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button 
-              variant="ghost" 
-              className="group flex items-center gap-2 rounded-full p-1 sm:pr-3 h-10 sm:h-auto focus-visible:ring-primary"
-              aria-label={victimInfo?.name ? `User profile for ${victimInfo.name}` : "Open User Profile"}
-            >
-              <Avatar className="w-8 h-8 border-2 border-primary/30 group-hover:border-primary/70 transition-colors">
-                <AvatarImage 
-                  src={victimInfo?.profilePictureDataUrl || undefined} 
-                  alt={victimInfo?.name ? `${victimInfo.name}'s profile picture` : 'User profile picture'} 
-                />
-                <AvatarFallback>
-                  {victimInfo?.name && getInitials(victimInfo.name) ? (
-                    <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">
-                      {getInitials(victimInfo.name)}
-                    </span>
-                  ) : (
-                    <UserCircle className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                  )}
-                </AvatarFallback>
-              </Avatar>
-              {victimInfo?.name && (
-                <span className="text-sm font-medium text-foreground hidden sm:inline truncate max-w-[150px] sm:max-w-[200px] group-hover:text-primary transition-colors">
-                  Hello, {victimInfo.name.split(' ')[0]}
-                </span>
-              )}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="lg:max-w-2xl p-0">
-            <DialogHeader className="p-6 pb-4">
-              <DialogTitle className="font-headline text-lg sm:text-xl flex items-center gap-2">
-                 User Info & Emergency Details
-              </DialogTitle>
-              <DialogDescription className="text-xs sm:text-sm">
-                This information is saved locally and can help rescuers. It will be sent automatically if you activate SOS.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="px-6 pb-6">
-              <BasicInfoForm />
-            </div>
-          </DialogContent>
-        </Dialog>
+        {showUserProfileSection && ( // Conditionally render the user profile dialog
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="group flex items-center gap-2 rounded-full p-1 sm:pr-3 h-10 sm:h-auto focus-visible:ring-primary"
+                aria-label={victimInfo?.name ? `User profile for ${victimInfo.name}` : "Open User Profile"}
+              >
+                <Avatar className="w-8 h-8 border-2 border-primary/30 group-hover:border-primary/70 transition-colors">
+                  <AvatarImage 
+                    src={victimInfo?.profilePictureDataUrl || undefined} 
+                    alt={victimInfo?.name ? `${victimInfo.name}'s profile picture` : 'User profile picture'} 
+                  />
+                  <AvatarFallback>
+                    {victimInfo?.name && getInitials(victimInfo.name) ? (
+                      <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">
+                        {getInitials(victimInfo.name)}
+                      </span>
+                    ) : (
+                      <UserCircle className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+                {victimInfo?.name && (
+                  <span className="text-sm font-medium text-foreground hidden sm:inline truncate max-w-[150px] sm:max-w-[200px] group-hover:text-primary transition-colors">
+                    Hello, {victimInfo.name.split(' ')[0]}
+                  </span>
+                )}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="lg:max-w-2xl p-0">
+              <DialogHeader className="p-6 pb-4">
+                <DialogTitle className="font-headline text-lg sm:text-xl flex items-center gap-2">
+                   User Info & Emergency Details
+                </DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm">
+                  This information is saved locally and can help rescuers. It will be sent automatically if you activate SOS.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="px-6 pb-6">
+                <BasicInfoForm />
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </header>
   );
