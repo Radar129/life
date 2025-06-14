@@ -174,7 +174,7 @@ export function BluetoothSOSPanel() {
       <CardHeader>
         <CardTitle className="font-headline text-xl sm:text-2xl text-center">SOS Alert Box</CardTitle>
         <CardDescription className="text-center text-xs sm:text-sm">
-          Broadcast your location and activate alerts. (Simulated for web environment)
+          Broadcast your location and activate alerts.
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center space-y-3 py-4 sm:py-6">
