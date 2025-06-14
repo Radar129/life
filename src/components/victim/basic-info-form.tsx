@@ -30,7 +30,7 @@ const genderOptions = [
 
 const countryCodes = [
   { name: "United States", code: "+1" },
-  { name: "Canada", code: "+1" },
+  { name: "Canada", code: "+1 CA" }, // Differentiated for display if needed, actual code still +1
   { name: "United Kingdom", code: "+44" },
   { name: "India", code: "+91" },
   { name: "Australia", code: "+61" },
@@ -40,7 +40,7 @@ const countryCodes = [
   { name: "South Africa", code: "+27" },
   { name: "Japan", code: "+81" },
   { name: "China", code: "+86" },
-  { name: "Other/Manual", code: ""}, // Allows manual input if needed
+  { name: "Other/Manual", code: "MANUAL_CODE"}, // Changed from "" to "MANUAL_CODE"
 ];
 
 
@@ -156,8 +156,11 @@ export function BasicInfoForm() {
     detailsString += "\nEmergency Contacts:\n";
     for (let i = 1; i <= 3; i++) {
         const contactName = details[`emergencyContact${i}Name` as keyof VictimBasicInfo];
-        const countryCode = details[`emergencyContact${i}CountryCode` as keyof VictimBasicInfo];
+        let countryCode = details[`emergencyContact${i}CountryCode` as keyof VictimBasicInfo];
         const contactPhone = details[`emergencyContact${i}Phone` as keyof VictimBasicInfo];
+        
+        if (countryCode === "MANUAL_CODE") countryCode = ""; // Don't show "MANUAL_CODE" in copied text
+
         if (contactName || countryCode || contactPhone) {
             detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${countryCode || ''}${contactPhone || 'N/A'}\n`;
         }
@@ -388,7 +391,7 @@ export function BasicInfoForm() {
                           <SelectContent>
                             {countryCodes.map((country) => (
                               <SelectItem key={country.name} value={country.code} className="text-sm">
-                                {country.name} ({country.code || "Manual"})
+                                {country.name} ({country.code === "MANUAL_CODE" ? "Manual" : country.code})
                               </SelectItem>
                             ))}
                           </SelectContent>
