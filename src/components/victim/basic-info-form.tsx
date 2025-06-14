@@ -46,11 +46,11 @@ const countryCodes = [
 
 
 const basicInfoSchema = z.object({
-  name: z.string().optional(),
-  dob: z.string().optional(),
-  age: z.string().optional(),
-  gender: z.string().optional(),
-  bloodGroup: z.string().optional(),
+  name: z.string().min(1, "Name is required."),
+  dob: z.string().min(1, "Date of Birth is required."),
+  age: z.string().optional(), // Age is calculated, so it doesn't need direct validation here
+  gender: z.string().min(1, "Gender is required."),
+  bloodGroup: z.string().min(1, "Blood Group is required."),
   profilePictureDataUrl: z.string().optional(),
   allergies: z.string().min(1, "Allergies are required. Enter 'None' if not applicable."),
   medications: z.string().min(1, "Medications are required. Enter 'None' if not applicable."),
@@ -255,7 +255,7 @@ export function BasicInfoForm() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="name" className="text-xs flex items-center gap-1"><UserCircle className="w-3 h-3"/>Name</FormLabel>
+                  <FormLabel htmlFor="name" className="text-xs flex items-center gap-1"><UserCircle className="w-3 h-3"/>Name <span className="text-destructive">*</span></FormLabel>
                   <FormControl>
                     <Input id="name" placeholder="e.g., Jane Doe" {...field} className="text-sm" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
                   </FormControl>
@@ -268,7 +268,7 @@ export function BasicInfoForm() {
               name="dob"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel htmlFor="dob" className="text-xs flex items-center gap-1"><CalendarIcon className="w-3 h-3"/>Date of Birth</FormLabel>
+                  <FormLabel htmlFor="dob" className="text-xs flex items-center gap-1"><CalendarIcon className="w-3 h-3"/>Date of Birth <span className="text-destructive">*</span></FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -325,7 +325,7 @@ export function BasicInfoForm() {
               name="gender"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="gender" className="text-xs flex items-center gap-1"><Users className="w-3 h-3"/>Gender</FormLabel>
+                  <FormLabel htmlFor="gender" className="text-xs flex items-center gap-1"><Users className="w-3 h-3"/>Gender <span className="text-destructive">*</span></FormLabel>
                   <Select onValueChange={(value) => { field.onChange(value); setIsSaved(false); }} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger id="gender" className="text-sm">
@@ -349,7 +349,7 @@ export function BasicInfoForm() {
               name="bloodGroup"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="bloodGroup" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Blood Group</FormLabel>
+                  <FormLabel htmlFor="bloodGroup" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Blood Group <span className="text-destructive">*</span></FormLabel>
                   <Select onValueChange={(value) => { field.onChange(value); setIsSaved(false); }} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger id="bloodGroup" className="text-sm">
@@ -521,5 +521,7 @@ export function BasicInfoForm() {
     </Form>
   );
 }
+
+    
 
     
