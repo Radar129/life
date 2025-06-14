@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, Save, NotebookPen, Users, CalendarIcon, Copy, Globe, MessageSquare } from 'lucide-react';
+import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, Save, NotebookPen, Users, CalendarIcon, Copy, Globe, MessageSquare, Upload, X, User as UserIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { VictimBasicInfo } from '@/types/signals';
 import { Separator } from '@/components/ui/separator';
@@ -18,6 +18,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format, differenceInYears } from 'date-fns';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 
 const bloodGroupOptions = [
   "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"
@@ -49,6 +51,7 @@ const basicInfoSchema = z.object({
   age: z.string().optional(),
   gender: z.string().optional(),
   bloodGroup: z.string().optional(),
+  profilePictureDataUrl: z.string().optional(),
   allergies: z.string().optional(),
   medications: z.string().optional(),
   conditions: z.string().optional(),
@@ -68,6 +71,7 @@ const basicInfoSchema = z.object({
 export function BasicInfoForm() {
   const { toast } = useToast();
   const [isSaved, setIsSaved] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<VictimBasicInfo>({
     resolver: zodResolver(basicInfoSchema),
@@ -77,6 +81,7 @@ export function BasicInfoForm() {
       age: "",
       gender: "",
       bloodGroup: "",
+      profilePictureDataUrl: "",
       allergies: "",
       medications: "",
       conditions: "",
@@ -102,6 +107,8 @@ export function BasicInfoForm() {
       title: "Information Saved",
       description: "Your information has been saved locally on this device.",
     });
+     // Dispatch a custom event to notify other components (like UserProfileReferenceCard)
+    window.dispatchEvent(new CustomEvent('victimInfoUpdated'));
   };
   
   useEffect(() => {
@@ -112,6 +119,7 @@ export function BasicInfoForm() {
         const formData = {
           ...parsedInfo,
           dob: parsedInfo.dob ? parsedInfo.dob : undefined,
+          profilePictureDataUrl: parsedInfo.profilePictureDataUrl || "",
         };
         form.reset(formData);
         
@@ -145,11 +153,32 @@ export function BasicInfoForm() {
     }
   };
 
+  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        form.setValue('profilePictureDataUrl', reader.result as string);
+        setIsSaved(false); // Require re-save
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    form.setValue('profilePictureDataUrl', '');
+    if(fileInputRef.current) {
+        fileInputRef.current.value = ""; // Clear the file input
+    }
+    setIsSaved(false); // Require re-save
+  };
+
   const handleCopyDetails = () => {
     const details = form.getValues();
     let detailsString = "User Information:\n";
 
     if (details.name) detailsString += `Name: ${details.name}\n`;
+    if (details.profilePictureDataUrl) detailsString += `Profile Picture: Set\n`;
     if (details.dob) {
         try {
             detailsString += `Date of Birth: ${format(new Date(details.dob), "PPP")}\n`;
@@ -168,20 +197,14 @@ export function BasicInfoForm() {
 
     detailsString += "\nEmergency Contacts:\n";
     const sharedCountryCodeValue = details.sharedEmergencyContactCountryCode;
-    let displaySharedCountryCode = "";
-    if (sharedCountryCodeValue && sharedCountryCodeValue !== "MANUAL_CODE") {
-        displaySharedCountryCode = sharedCountryCodeValue;
-    }
-
-
+    
     for (let i = 1; i <= 3; i++) {
         const contactName = details[`emergencyContact${i}Name` as keyof VictimBasicInfo];
         let contactCountryCode = details[`emergencyContact${i}CountryCode` as keyof VictimBasicInfo];
         const contactPhone = details[`emergencyContact${i}Phone` as keyof VictimBasicInfo];
         
-        // Use shared code if individual code is MANUAL_CODE or undefined, but prefer individual if it's a real code
         let finalCountryCode = contactCountryCode !== "MANUAL_CODE" && contactCountryCode ? contactCountryCode : sharedCountryCodeValue;
-        if (finalCountryCode === "MANUAL_CODE") finalCountryCode = ""; // Don't display "MANUAL_CODE"
+        if (finalCountryCode === "MANUAL_CODE") finalCountryCode = ""; 
 
         if (contactName || contactPhone) { 
             detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${finalCountryCode || ''}${contactPhone || 'N/A'}\n`;
@@ -203,7 +226,27 @@ export function BasicInfoForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
-        <div className="space-y-4 flex-grow overflow-y-auto max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-16rem)] p-1 pr-3"> {/* Adjusted max-h and added padding */}
+        <div className="space-y-4 flex-grow overflow-y-auto max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-16rem)] p-1 pr-3">
+          
+          <div className="flex flex-col items-center space-y-2 my-3">
+            <Avatar className="w-24 h-24 border-2 border-primary shadow-md">
+              <AvatarImage src={form.watch('profilePictureDataUrl') || undefined} alt={form.watch('name') || 'User Profile'} />
+              <AvatarFallback>
+                <UserIcon className="w-12 h-12 text-muted-foreground" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex gap-2">
+              <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="text-xs">
+                <Upload className="mr-1.5 h-3.5 w-3.5" /> Change Photo
+              </Button>
+              {form.watch('profilePictureDataUrl') && (
+                <Button type="button" onClick={handleRemovePhoto} variant="ghost" size="sm" className="text-xs text-destructive hover:text-destructive">
+                  <X className="mr-1.5 h-3.5 w-3.5" /> Remove
+                </Button>
+              )}
+            </div>
+            <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/*" className="hidden" />
+          </div>
           
           <p className="text-sm font-medium text-foreground">Personal Information</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -383,6 +426,7 @@ export function BasicInfoForm() {
                     form.setValue('emergencyContact1CountryCode', value);
                     form.setValue('emergencyContact2CountryCode', value);
                     form.setValue('emergencyContact3CountryCode', value);
+                    setIsSaved(false);
                   }}
                   value={field.value || ""}
                 >
@@ -426,7 +470,7 @@ export function BasicInfoForm() {
                   <FormItem>
                     <FormLabel htmlFor={`emergencyContact${contactIndex}Name`} className="text-xs">Name</FormLabel>
                     <FormControl>
-                      <Input id={`emergencyContact${contactIndex}Name`} placeholder="Contact Name" {...field} className="text-sm"/>
+                      <Input id={`emergencyContact${contactIndex}Name`} placeholder="Contact Name" {...field} className="text-sm" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -439,7 +483,7 @@ export function BasicInfoForm() {
                   <FormItem>
                     <FormLabel htmlFor={`emergencyContact${contactIndex}Phone`} className="text-xs flex items-center gap-1"><Phone className="w-3 h-3"/>Phone Number</FormLabel>
                     <FormControl>
-                      <Input id={`emergencyContact${contactIndex}Phone`} placeholder="Phone Number" {...field} className="text-sm"/>
+                      <Input id={`emergencyContact${contactIndex}Phone`} placeholder="Phone Number" {...field} className="text-sm" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -455,9 +499,8 @@ export function BasicInfoForm() {
             name="customSOSMessage"
             render={({ field }) => (
               <FormItem>
-                {/* <FormLabel htmlFor="customSOSMessage" className="text-xs flex items-center gap-1"><MessageSquare className="w-3 h-3"/>Personalized SOS Message</FormLabel> */}
                 <FormControl>
-                  <Textarea id="customSOSMessage" placeholder="Default: Emergency! I need help. My location is being broadcast." {...field} className="text-sm min-h-[80px]" maxLength={160}/>
+                  <Textarea id="customSOSMessage" placeholder="Default: Emergency! I need help. My location is being broadcast." {...field} className="text-sm min-h-[80px]" maxLength={160} onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
                 </FormControl>
                 <FormMessage />
                  <p className="text-xs text-muted-foreground text-right">{field.value?.length || 0}/160 characters</p>
@@ -466,7 +509,7 @@ export function BasicInfoForm() {
           />
 
         </div>
-        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t mt-auto"> {/* Added mt-auto to push footer down */}
+        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t mt-auto">
           <Button type="button" variant="secondary" size="sm" onClick={handleCopyDetails} className="text-sm w-full sm:w-auto order-last sm:order-first">
             <Copy className="mr-2 h-4 w-4"/> Copy Details
           </Button>
@@ -478,6 +521,3 @@ export function BasicInfoForm() {
     </Form>
   );
 }
-
-
-    

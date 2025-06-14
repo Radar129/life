@@ -2,6 +2,7 @@
 import { BluetoothSOSPanel } from '@/components/victim/bluetooth-sos-panel';
 import { ConnectivityStatusBox } from '@/components/victim/connectivity-status-box';
 import { NotificationLogPanel } from '@/components/victim/notification-log-panel';
+import { UserProfileReferenceCard } from '@/components/victim/user-profile-reference-card';
 import { Separator } from '@/components/ui/separator';
 
 export default function VictimPage() {
@@ -10,8 +11,8 @@ export default function VictimPage() {
       <BluetoothSOSPanel />
       <Separator className="my-2 w-full max-w-2xl" />
       <ConnectivityStatusBox />
+      <UserProfileReferenceCard />
       <Separator className="my-2 w-full max-w-2xl" />
-      {/* BasicInfoForm was here, moved to AppHeader Dialog */}
       <NotificationLogPanel />
     </div>
   );

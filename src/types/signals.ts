@@ -16,10 +16,11 @@ export interface VictimBasicInfo {
   age?: string; // Calculated age
   gender?: string; 
   bloodGroup?: string;
+  profilePictureDataUrl?: string; // For storing the profile picture as a Base64 Data URL
   allergies?: string;
   medications?: string;
   conditions?: string;
-  sharedEmergencyContactCountryCode?: string; // Added for shared country code selector
+  sharedEmergencyContactCountryCode?: string;
   emergencyContact1Name?: string;
   emergencyContact1CountryCode?: string;
   emergencyContact1Phone?: string;
