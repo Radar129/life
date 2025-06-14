@@ -159,7 +159,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
               signals.map(s => s.lat && s.lon && (
                 <div key={s.id} className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground border-b pb-1 mb-1">
                   <div>
-                    <span className='font-semibold text-destructive'>{s.name}</span>
+                    <span className='font-semibold text-destructive'>Victim: {s.name}</span>
                     <br />
                     <span className="text-xs">LAT {s.lat}, LON {s.lon} (Signal: {s.advertisedName || 'N/A'})</span>
                   </div>
