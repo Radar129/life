@@ -37,7 +37,7 @@ export default function RescuerPage() {
         setIsAuthenticated(true);
       }
     }
-  }, [router]); // Removed toast from dependencies
+  }, [router, toast]); 
 
   const handleSignalsDetected = (signals: DetectedSignal[]) => {
     setDetectedSignals(signals);
@@ -48,7 +48,7 @@ export default function RescuerPage() {
         localStorage.removeItem('isRescuerAuthenticated');
     }
     toast({ title: "Logged Out", description: "You have been successfully logged out." });
-    router.replace('/rescuer/login');
+    router.replace('/'); // Changed from /rescuer/login to /
   };
 
   if (!isAuthenticated) {
