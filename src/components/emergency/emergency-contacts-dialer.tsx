@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation'; // Import usePathname
 import { PhoneCall, User, Shield, Flame, Ambulance as AmbulanceIconLucide } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +29,7 @@ const STANDARD_EMERGENCY_SERVICES = [
 export function EmergencyContactsDialer() {
   const [isOpen, setIsOpen] = useState(false);
   const [userInfo, setUserInfo] = useState<VictimBasicInfo | null>(null);
+  const pathname = usePathname(); // Get the current pathname
 
   useEffect(() => {
     const loadUserInfo = () => {
@@ -111,6 +113,13 @@ export function EmergencyContactsDialer() {
   }
 
   const allContacts = [...personalContacts, ...STANDARD_EMERGENCY_SERVICES];
+
+  // Determine if the dialer should be visible
+  const isDialerVisible = pathname === '/victim' || pathname === '/rescuer';
+
+  if (!isDialerVisible) {
+    return null; // Don't render anything if not on the specified pages
+  }
 
   return (
     <>
