@@ -20,14 +20,12 @@ export function ModeSelector() {
           <Link href="/victim" className="flex flex-col items-center justify-center space-y-1.5 sm:space-y-2">
             <User className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
             <span className="font-semibold text-sm sm:text-base">I Need Help</span>
-            <span className="text-xs sm:text-sm text-muted-foreground">(Victim Mode)</span>
           </Link>
         </Button>
         <Button asChild variant="default" size="lg" className="py-5 sm:py-6 text-base bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 ease-in-out transform hover:scale-105 focus:ring-accent">
           <Link href="/rescuer/login" className="flex flex-col items-center justify-center space-y-1.5 sm:space-y-2">
             <ShieldCheck className="w-8 h-8 sm:w-10 sm:h-10 text-accent" />
             <span className="font-semibold text-sm sm:text-base">Rescue Team</span>
-            <span className="text-xs sm:text-sm text-primary-foreground/80">(Rescuer Portal)</span>
           </Link>
         </Button>
       </CardContent>
