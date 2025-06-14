@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bluetooth, Search, WifiOff, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
-import { RadarAnimation } from '@/components/rescuer/radar-animation';
+// import { RadarAnimation } from '@/components/rescuer/radar-animation'; // RadarAnimation import removed
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DetectedSignal as BaseDetectedSignal } from '@/types/signals';
@@ -164,7 +164,7 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
           {status === "scanning" ? "Scanning..." : "Start New Scan"}
         </Button>
 
-        {status === "scanning" && <RadarAnimation />}
+        {/* RadarAnimation was here */}
         
         {status === "unsupported" && (
           <div className="text-destructive text-sm flex items-center gap-2 p-3 sm:p-4 bg-destructive/10 rounded-md">
