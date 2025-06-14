@@ -17,6 +17,7 @@ interface LogEntry {
 export function NotificationLogPanel() {
   const { toast } = useToast();
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [isClientLoaded, setIsClientLoaded] = useState(false);
 
   useEffect(() => {
     // Generate logs on the client side after mount to avoid hydration mismatch
@@ -28,6 +29,7 @@ export function NotificationLogPanel() {
       { id: 5, timestamp: new Date(Date.now() - 1 * 60000), message: "SOS Signal Rebroadcast." },
     ];
     setLogs(generatedLogs);
+    setIsClientLoaded(true); // Signal that client-side specific logic has run
   }, []);
 
 
@@ -64,7 +66,7 @@ export function NotificationLogPanel() {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-3 sm:pt-4">
-        {logs.length > 0 ? (
+        {isClientLoaded && logs.length > 0 ? (
           <ScrollArea className="h-48 sm:h-60 w-full rounded-md border p-2 sm:p-3 bg-muted/20">
             <ul className="space-y-2">
               {logs.map((log) => (
@@ -80,7 +82,9 @@ export function NotificationLogPanel() {
             </ul>
           </ScrollArea>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No activity logged yet. {logs.length === 0 && typeof window !== 'undefined' ? '' : '(Loading logs...)'}</p>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            {!isClientLoaded ? '(Loading logs...)' : 'No activity logged yet.'}
+          </p>
         )}
       </CardContent>
       <CardFooter className="flex justify-end p-4 border-t">
