@@ -28,6 +28,22 @@ const genderOptions = [
   "Male", "Female"
 ];
 
+const countryCodes = [
+  { name: "United States", code: "+1" },
+  { name: "Canada", code: "+1" },
+  { name: "United Kingdom", code: "+44" },
+  { name: "India", code: "+91" },
+  { name: "Australia", code: "+61" },
+  { name: "Germany", code: "+49" },
+  { name: "France", code: "+33" },
+  { name: "Brazil", code: "+55" },
+  { name: "South Africa", code: "+27" },
+  { name: "Japan", code: "+81" },
+  { name: "China", code: "+86" },
+  { name: "Other/Manual", code: ""}, // Allows manual input if needed
+];
+
+
 const basicInfoSchema = z.object({
   name: z.string().optional(),
   dob: z.string().optional(),
@@ -356,16 +372,27 @@ export function BasicInfoForm() {
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-2 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-[theme(spacing.40)_1fr] gap-2 items-end">
                   <FormField
                     control={form.control}
                     name={`emergencyContact${index}CountryCode` as keyof VictimBasicInfo}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel htmlFor={`emergencyContact${index}CountryCode`} className="text-xs flex items-center gap-1"><Globe className="w-3 h-3"/>Code</FormLabel>
-                        <FormControl>
-                          <Input id={`emergencyContact${index}CountryCode`} placeholder="+1" {...field} className="text-sm w-20 sm:w-24"/>
-                        </FormControl>
+                        <FormLabel htmlFor={`emergencyContact${index}CountryCode`} className="text-xs flex items-center gap-1"><Globe className="w-3 h-3"/>Country</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger id={`emergencyContact${index}CountryCode`} className="text-sm">
+                              <SelectValue placeholder="Select Country" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {countryCodes.map((country) => (
+                              <SelectItem key={country.name} value={country.code} className="text-sm">
+                                {country.name} ({country.code || "Manual"})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -418,3 +445,4 @@ export function BasicInfoForm() {
     </Card>
   );
 }
+
