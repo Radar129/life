@@ -48,7 +48,7 @@ const countryCodes = [
 const basicInfoSchema = z.object({
   name: z.string().min(1, "Name is required."),
   dob: z.string().min(1, "Date of Birth is required."),
-  age: z.string().optional(), // Age is calculated, so it doesn't need direct validation here
+  age: z.string().optional(), 
   gender: z.string().min(1, "Gender is required."),
   bloodGroup: z.string().min(1, "Blood Group is required."),
   profilePictureDataUrl: z.string().optional(),
@@ -521,7 +521,3 @@ export function BasicInfoForm() {
     </Form>
   );
 }
-
-    
-
-    
