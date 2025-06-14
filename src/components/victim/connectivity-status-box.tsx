@@ -150,7 +150,7 @@ export function ConnectivityStatusBox() {
           <StatusItem 
             icon={<Bluetooth className={`w-4 h-4 ${status.bluetoothOn ? 'text-blue-500' : 'text-muted-foreground'}`} />} 
             label="Bluetooth" 
-            value={status.bluetoothOn ? "ON (Device: R.A.D.A.R Host - Simulated)" : "OFF"} 
+            value={status.bluetoothOn ? "ON (Device: R.A.D.A.R Host)" : "OFF"} 
           />
           <StatusItem 
             icon={<Wifi className={`w-4 h-4 ${status.wifiConnected ? 'text-green-500' : 'text-muted-foreground'}`} />} 
