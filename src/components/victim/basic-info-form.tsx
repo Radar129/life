@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, MessageSquare, Save, NotebookPen } from 'lucide-react';
+import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, MessageSquare, Save, NotebookPen, Users } from 'lucide-react'; // Added Users icon
 import { useToast } from '@/hooks/use-toast';
 import type { VictimBasicInfo } from '@/types/signals';
 import { Separator } from '@/components/ui/separator';
@@ -20,9 +20,14 @@ const bloodGroupOptions = [
   "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"
 ];
 
+const genderOptions = [
+  "Male", "Female", "Non-binary", "Other", "Prefer not to say"
+];
+
 const basicInfoSchema = z.object({
   name: z.string().optional(),
   age: z.string().optional(),
+  gender: z.string().optional(), // Added gender to schema
   bloodGroup: z.string().optional(),
   allergies: z.string().optional(),
   medications: z.string().optional(),
@@ -45,6 +50,7 @@ export function BasicInfoForm() {
     defaultValues: {
       name: "",
       age: "",
+      gender: "", // Added gender default value
       bloodGroup: "",
       allergies: "",
       medications: "",
@@ -100,7 +106,7 @@ export function BasicInfoForm() {
           <CardContent className="space-y-4 pt-3 sm:pt-4">
             
             <p className="text-sm font-medium text-foreground">Personal Information</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"> {/* Changed sm:grid-cols-3 to sm:grid-cols-2 */}
               <FormField
                 control={form.control}
                 name="name"
@@ -133,7 +139,7 @@ export function BasicInfoForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel htmlFor="bloodGroup" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Blood Group</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger id="bloodGroup" className="text-sm">
                           <SelectValue placeholder="Select blood group" />
@@ -143,6 +149,30 @@ export function BasicInfoForm() {
                         {bloodGroupOptions.map((group) => (
                           <SelectItem key={group} value={group} className="text-sm">
                             {group}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel htmlFor="gender" className="text-xs flex items-center gap-1"><Users className="w-3 h-3"/>Gender</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger id="gender" className="text-sm">
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {genderOptions.map((option) => (
+                          <SelectItem key={option} value={option} className="text-sm">
+                            {option}
                           </SelectItem>
                         ))}
                       </SelectContent>

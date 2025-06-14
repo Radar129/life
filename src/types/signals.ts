@@ -13,6 +13,7 @@ export interface DetectedSignal {
 export interface VictimBasicInfo {
   name?: string;
   age?: string;
+  gender?: string; // Added gender field
   bloodGroup?: string;
   allergies?: string;
   medications?: string;
