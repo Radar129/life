@@ -17,6 +17,7 @@ interface DetectedSignal {
   lon?: number;
   timestamp: number;
   status?: string; // Added status for victim
+  advertisedName?: string;
 }
 
 export default function RescuerPage() {
@@ -36,7 +37,7 @@ export default function RescuerPage() {
         setIsAuthenticated(true);
       }
     }
-  }, [router, toast]);
+  }, [router]); // Removed toast from dependencies
 
   const handleSignalsDetected = (signals: DetectedSignal[]) => {
     setDetectedSignals(signals);
@@ -81,3 +82,4 @@ export default function RescuerPage() {
     </div>
   );
 }
+
