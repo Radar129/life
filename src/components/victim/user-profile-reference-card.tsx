@@ -66,7 +66,7 @@ export function UserProfileReferenceCard() {
 
   const isInfoComplete = !!(
     userInfo.name && userInfo.name.trim() !== "" &&
-    userInfo.age && userInfo.age.trim() !== "" &&
+    userInfo.age && userInfo.age.trim() !== "" && // Ensure age is present
     userInfo.bloodGroup && userInfo.bloodGroup.trim() !== ""
   );
 
@@ -89,13 +89,14 @@ export function UserProfileReferenceCard() {
             <p className="text-xs text-muted-foreground">
               Age: {userInfo.age || 'N/A'} | Blood Group: {userInfo.bloodGroup || 'N/A'}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className={`text-xs mt-0.5 ${isInfoComplete ? 'text-muted-foreground' : 'text-destructive'}`}>
               {isInfoComplete
-                ? 'Your basic information is up-to-date.'
-                : 'Missing basic details. Update via profile icon.'}
+                ? 'Basic details are complete.'
+                : 'Missing details – please complete all required fields.'}
             </p>
         </div>
       </CardContent>
     </Card>
   );
 }
+
