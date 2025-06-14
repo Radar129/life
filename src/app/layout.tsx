@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Life - Emergency Response Assistant',
-  description: 'Your Lifeline in Emergencies. SOS, Rescue Coordination, and AI-Powered Advice.',
+  title: 'R.A.D.A.R - Emergency Response Assistant',
+  description: 'R.A.D.A.R - Your Lifeline in Emergencies. SOS, Rescue Coordination, and AI-Powered Advice.',
 };
 
 export default function RootLayout({
