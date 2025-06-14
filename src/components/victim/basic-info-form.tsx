@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, MessageSquare, Save, NotebookPen, Users, CalendarIcon, Copy } from 'lucide-react';
+import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, MessageSquare, Save, NotebookPen, Users, CalendarIcon, Copy, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { VictimBasicInfo } from '@/types/signals';
 import { Separator } from '@/components/ui/separator';
@@ -38,10 +38,13 @@ const basicInfoSchema = z.object({
   medications: z.string().optional(),
   conditions: z.string().optional(),
   emergencyContact1Name: z.string().optional(),
+  emergencyContact1CountryCode: z.string().optional(),
   emergencyContact1Phone: z.string().optional(),
   emergencyContact2Name: z.string().optional(),
+  emergencyContact2CountryCode: z.string().optional(),
   emergencyContact2Phone: z.string().optional(),
   emergencyContact3Name: z.string().optional(),
+  emergencyContact3CountryCode: z.string().optional(),
   emergencyContact3Phone: z.string().optional(),
   customSOSMessage: z.string().max(160, "SOS message too long (max 160 chars)").optional(),
 });
@@ -62,10 +65,13 @@ export function BasicInfoForm() {
       medications: "",
       conditions: "",
       emergencyContact1Name: "",
+      emergencyContact1CountryCode: "",
       emergencyContact1Phone: "",
       emergencyContact2Name: "",
+      emergencyContact2CountryCode: "",
       emergencyContact2Phone: "",
       emergencyContact3Name: "",
+      emergencyContact3CountryCode: "",
       emergencyContact3Phone: "",
       customSOSMessage: "Emergency! I need help. My location is being broadcast.",
     },
@@ -119,7 +125,7 @@ export function BasicInfoForm() {
         try {
             detailsString += `Date of Birth: ${format(new Date(details.dob), "PPP")}\n`;
         } catch (e) {
-             detailsString += `Date of Birth: ${details.dob}\n`; // fallback if dob is not a valid date string for format
+             detailsString += `Date of Birth: ${details.dob}\n`;
         }
     }
     if (details.age) detailsString += `Age: ${details.age}\n`;
@@ -134,9 +140,10 @@ export function BasicInfoForm() {
     detailsString += "\nEmergency Contacts:\n";
     for (let i = 1; i <= 3; i++) {
         const contactName = details[`emergencyContact${i}Name` as keyof VictimBasicInfo];
+        const countryCode = details[`emergencyContact${i}CountryCode` as keyof VictimBasicInfo];
         const contactPhone = details[`emergencyContact${i}Phone` as keyof VictimBasicInfo];
-        if (contactName || contactPhone) {
-            detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${contactPhone || 'N/A'}\n`;
+        if (contactName || countryCode || contactPhone) {
+            detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${countryCode || ''}${contactPhone || 'N/A'}\n`;
         }
     }
     
@@ -187,7 +194,7 @@ export function BasicInfoForm() {
                 name="dob"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel htmlFor="dob" className="text-xs">Date of Birth</FormLabel>
+                    <FormLabel htmlFor="dob" className="text-xs flex items-center gap-1"><CalendarIcon className="w-3 h-3"/>Date of Birth</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -336,7 +343,6 @@ export function BasicInfoForm() {
             {[1, 2, 3].map(index => (
               <div key={index} className="space-y-2 p-2 border rounded-md bg-muted/30">
                 <p className="text-xs font-semibold text-muted-foreground">Contact {index}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
                   name={`emergencyContact${index}Name` as keyof VictimBasicInfo}
@@ -350,19 +356,33 @@ export function BasicInfoForm() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name={`emergencyContact${index}Phone` as keyof VictimBasicInfo}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel htmlFor={`emergencyContact${index}Phone`} className="text-xs flex items-center gap-1"><Phone className="w-3 h-3"/>Phone</FormLabel>
-                      <FormControl>
-                        <Input id={`emergencyContact${index}Phone`} placeholder="Phone Number" {...field} className="text-sm"/>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-2 items-end">
+                  <FormField
+                    control={form.control}
+                    name={`emergencyContact${index}CountryCode` as keyof VictimBasicInfo}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor={`emergencyContact${index}CountryCode`} className="text-xs flex items-center gap-1"><Globe className="w-3 h-3"/>Code</FormLabel>
+                        <FormControl>
+                          <Input id={`emergencyContact${index}CountryCode`} placeholder="+1" {...field} className="text-sm w-20 sm:w-24"/>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`emergencyContact${index}Phone` as keyof VictimBasicInfo}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor={`emergencyContact${index}Phone`} className="text-xs flex items-center gap-1"><Phone className="w-3 h-3"/>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input id={`emergencyContact${index}Phone`} placeholder="Phone Number" {...field} className="text-sm"/>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </div>
             ))}

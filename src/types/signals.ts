@@ -20,11 +20,13 @@ export interface VictimBasicInfo {
   medications?: string;
   conditions?: string;
   emergencyContact1Name?: string;
+  emergencyContact1CountryCode?: string;
   emergencyContact1Phone?: string;
   emergencyContact2Name?: string;
+  emergencyContact2CountryCode?: string;
   emergencyContact2Phone?: string;
   emergencyContact3Name?: string;
+  emergencyContact3CountryCode?: string;
   emergencyContact3Phone?: string;
   customSOSMessage?: string;
 }
-
