@@ -92,7 +92,7 @@ export function UserProfileReferenceCard() {
             <p className="text-xs text-muted-foreground mt-0.5">
               {isInfoComplete
                 ? 'Your basic information is up-to-date.'
-                : 'Please complete your profile in the user details.'}
+                : 'Missing basic details. Update via profile icon.'}
             </p>
         </div>
       </CardContent>
