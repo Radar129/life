@@ -52,13 +52,13 @@ const basicInfoSchema = z.object({
   gender: z.string().optional(),
   bloodGroup: z.string().optional(),
   profilePictureDataUrl: z.string().optional(),
-  allergies: z.string().optional(),
-  medications: z.string().optional(),
-  conditions: z.string().optional(),
+  allergies: z.string().min(1, "Allergies are required. Enter 'None' if not applicable."),
+  medications: z.string().min(1, "Medications are required. Enter 'None' if not applicable."),
+  conditions: z.string().min(1, "Medical conditions are required. Enter 'None' if not applicable."),
   sharedEmergencyContactCountryCode: z.string().optional(),
-  emergencyContact1Name: z.string().optional(),
+  emergencyContact1Name: z.string().min(1, "Contact 1: Name is required."),
   emergencyContact1CountryCode: z.string().optional(),
-  emergencyContact1Phone: z.string().optional(),
+  emergencyContact1Phone: z.string().min(1, "Contact 1: Phone number is required."),
   emergencyContact2Name: z.string().optional(),
   emergencyContact2CountryCode: z.string().optional(),
   emergencyContact2Phone: z.string().optional(),
@@ -107,7 +107,6 @@ export function BasicInfoForm() {
       title: "Information Saved",
       description: "Your information has been saved locally on this device.",
     });
-     // Dispatch a custom event to notify other components (like UserProfileReferenceCard)
     window.dispatchEvent(new CustomEvent('victimInfoUpdated'));
   };
   
@@ -151,6 +150,7 @@ export function BasicInfoForm() {
       form.setValue('dob', undefined);
       form.setValue('age', '');
     }
+    setIsSaved(false);
   };
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,7 +159,7 @@ export function BasicInfoForm() {
       const reader = new FileReader();
       reader.onloadend = () => {
         form.setValue('profilePictureDataUrl', reader.result as string);
-        setIsSaved(false); // Require re-save
+        setIsSaved(false);
       };
       reader.readAsDataURL(file);
     }
@@ -168,9 +168,9 @@ export function BasicInfoForm() {
   const handleRemovePhoto = () => {
     form.setValue('profilePictureDataUrl', '');
     if(fileInputRef.current) {
-        fileInputRef.current.value = ""; // Clear the file input
+        fileInputRef.current.value = ""; 
     }
-    setIsSaved(false); // Require re-save
+    setIsSaved(false);
   };
 
   const handleCopyDetails = () => {
@@ -257,7 +257,7 @@ export function BasicInfoForm() {
                 <FormItem>
                   <FormLabel htmlFor="name" className="text-xs flex items-center gap-1"><UserCircle className="w-3 h-3"/>Name</FormLabel>
                   <FormControl>
-                    <Input id="name" placeholder="e.g., Jane Doe" {...field} className="text-sm"/>
+                    <Input id="name" placeholder="e.g., Jane Doe" {...field} className="text-sm" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -326,7 +326,7 @@ export function BasicInfoForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel htmlFor="gender" className="text-xs flex items-center gap-1"><Users className="w-3 h-3"/>Gender</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <Select onValueChange={(value) => { field.onChange(value); setIsSaved(false); }} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger id="gender" className="text-sm">
                         <SelectValue placeholder="Select gender" />
@@ -350,7 +350,7 @@ export function BasicInfoForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel htmlFor="bloodGroup" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Blood Group</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <Select onValueChange={(value) => { field.onChange(value); setIsSaved(false); }} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger id="bloodGroup" className="text-sm">
                         <SelectValue placeholder="Select blood group" />
@@ -371,15 +371,15 @@ export function BasicInfoForm() {
           </div>
 
           <Separator className="my-3"/>
-          <p className="text-sm font-medium text-foreground">Medical Information</p>
+          <p className="text-sm font-medium text-foreground">Medical Information (Enter 'None' if not applicable)</p>
           <FormField
             control={form.control}
             name="allergies"
             render={({ field }) => (
               <FormItem>
-                <FormLabel htmlFor="allergies" className="text-xs flex items-center gap-1"><ShieldAlert className="w-3 h-3"/>Allergies</FormLabel>
+                <FormLabel htmlFor="allergies" className="text-xs flex items-center gap-1"><ShieldAlert className="w-3 h-3"/>Allergies <span className="text-destructive">*</span></FormLabel>
                 <FormControl>
-                  <Textarea id="allergies" placeholder="e.g., Penicillin, Peanuts" {...field} className="text-sm min-h-[60px]"/>
+                  <Textarea id="allergies" placeholder="e.g., Penicillin, Peanuts, or None" {...field} className="text-sm min-h-[60px]" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -390,9 +390,9 @@ export function BasicInfoForm() {
             name="medications"
             render={({ field }) => (
               <FormItem>
-                <FormLabel htmlFor="medications" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Current Medications</FormLabel>
+                <FormLabel htmlFor="medications" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Current Medications <span className="text-destructive">*</span></FormLabel>
                 <FormControl>
-                  <Textarea id="medications" placeholder="e.g., Insulin, Aspirin" {...field} className="text-sm min-h-[60px]"/>
+                  <Textarea id="medications" placeholder="e.g., Insulin, Aspirin, or None" {...field} className="text-sm min-h-[60px]" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -403,9 +403,9 @@ export function BasicInfoForm() {
             name="conditions"
             render={({ field }) => (
               <FormItem>
-                <FormLabel htmlFor="conditions" className="text-xs flex items-center gap-1"><HeartPulse className="w-3 h-3"/>Medical Conditions</FormLabel>
+                <FormLabel htmlFor="conditions" className="text-xs flex items-center gap-1"><HeartPulse className="w-3 h-3"/>Medical Conditions <span className="text-destructive">*</span></FormLabel>
                 <FormControl>
-                  <Textarea id="conditions" placeholder="e.g., Diabetes, Asthma" {...field} className="text-sm min-h-[60px]"/>
+                  <Textarea id="conditions" placeholder="e.g., Diabetes, Asthma, or None" {...field} className="text-sm min-h-[60px]" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -414,7 +414,7 @@ export function BasicInfoForm() {
 
           <Separator className="my-3"/>
           <p className="text-sm font-medium text-foreground">Emergency Contacts</p>
-          <FormField
+           <FormField
             control={form.control}
             name="sharedEmergencyContactCountryCode"
             render={({ field }) => (
@@ -462,13 +462,13 @@ export function BasicInfoForm() {
 
           {[1, 2, 3].map(contactIndex => (
             <div key={contactIndex} className="space-y-2 p-2 border rounded-md bg-muted/30">
-              <p className="text-xs font-semibold text-muted-foreground">Contact {contactIndex}</p>
+              <p className="text-xs font-semibold text-muted-foreground">Contact {contactIndex} {contactIndex === 1 && <span className="text-destructive">*</span>}</p>
               <FormField
                 control={form.control}
                 name={`emergencyContact${contactIndex}Name` as keyof VictimBasicInfo}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor={`emergencyContact${contactIndex}Name`} className="text-xs">Name</FormLabel>
+                    <FormLabel htmlFor={`emergencyContact${contactIndex}Name`} className="text-xs">Name {contactIndex === 1 && <span className="text-destructive">*</span>}</FormLabel>
                     <FormControl>
                       <Input id={`emergencyContact${contactIndex}Name`} placeholder="Contact Name" {...field} className="text-sm" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
                     </FormControl>
@@ -481,7 +481,7 @@ export function BasicInfoForm() {
                 name={`emergencyContact${contactIndex}Phone` as keyof VictimBasicInfo}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor={`emergencyContact${contactIndex}Phone`} className="text-xs flex items-center gap-1"><Phone className="w-3 h-3"/>Phone Number</FormLabel>
+                    <FormLabel htmlFor={`emergencyContact${contactIndex}Phone`} className="text-xs flex items-center gap-1"><Phone className="w-3 h-3"/>Phone Number {contactIndex === 1 && <span className="text-destructive">*</span>}</FormLabel>
                     <FormControl>
                       <Input id={`emergencyContact${contactIndex}Phone`} placeholder="Phone Number" {...field} className="text-sm" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
                     </FormControl>
@@ -521,3 +521,5 @@ export function BasicInfoForm() {
     </Form>
   );
 }
+
+    
