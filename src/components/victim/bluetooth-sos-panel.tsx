@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, CheckCircle, Bluetooth, XCircle, Loader2, Zap, Volume2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import type { VictimBasicInfo } from '@/types/signals';
+import type { VictimBasicInfo, DetectedSignal } from '@/types/signals';
 
 type SOSStatus = "inactive" | "activating" | "active" | "error" | "unsupported";
+const LOCAL_STORAGE_SOS_KEY = 'currentR.A.D.A.R.SOSSignal';
 
 export function BluetoothSOSPanel() {
   const [status, setStatus] = useState<SOSStatus>("inactive");
@@ -30,6 +31,7 @@ export function BluetoothSOSPanel() {
     }
     return () => {
       if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId);
+      localStorage.removeItem(LOCAL_STORAGE_SOS_KEY); // Clean up on unmount if active
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, status]);
@@ -75,19 +77,32 @@ export function BluetoothSOSPanel() {
       }
     }
     
-    const deviceName = `SOS_${victimNameForSignal}_${currentLocation.lat}_${currentLocation.lon}`;
+    const advertisedName = `SOS_${victimNameForSignal}_${currentLocation.lat}_${currentLocation.lon}`;
     const fullMessage = `${customSosMessageText} Location: LAT ${currentLocation.lat}, LON ${currentLocation.lon}. Name: ${victimNameForSignal.replace(/_/g, ' ')}.`;
 
-    console.log(`SOS broadcast. Simulated device name: ${deviceName}`);
-    console.log("User Info Sent (Simulated):", basicInfo); // For simulation, this info would be part of a different payload if connected
+    console.log(`SOS broadcast. Simulated device name: ${advertisedName}`);
+    console.log("User Info Sent (Simulated):", basicInfo);
     console.log("Full SOS Message (Simulated):", fullMessage);
     
-    const logDetail = `SOS Signal Broadcast: Simulated Name ${deviceName}. Message: ${fullMessage}`;
+    const logDetail = `SOS Signal Broadcast: Simulated Name ${advertisedName}. Message: ${fullMessage}`;
     window.dispatchEvent(new CustomEvent('newAppLog', { detail: logDetail }));
     toast({
       title: "SOS Broadcasting",
-      description: `Signal sent with (simulated): ${deviceName}. Rebroadcasting periodically.`,
+      description: `Signal sent with (simulated): ${advertisedName}. Rebroadcasting periodically.`,
     });
+
+    // Write to localStorage for the RescuerPanel on the same device
+    const signalDataForStorage: DetectedSignal = {
+      id: 'local_sos_signal', // Static ID for the single local signal
+      advertisedName: advertisedName,
+      name: victimNameForSignal.replace(/_/g, ' '),
+      lat: currentLocation.lat,
+      lon: currentLocation.lon,
+      rssi: -50 - Math.floor(Math.random() * 10), // Simulate a strong RSSI as it's local
+      timestamp: Date.now(),
+      status: 'Active (Local)', // Custom status for clarity
+    };
+    localStorage.setItem(LOCAL_STORAGE_SOS_KEY, JSON.stringify(signalDataForStorage));
   };
 
   const startRebroadcastCountdown = (currentLocation: {lat: number, lon: number}) => {
@@ -115,15 +130,7 @@ export function BluetoothSOSPanel() {
         clearInterval(rebroadcastIntervalId);
         setRebroadcastIntervalId(null);
     }
-
-    if (!navigator.bluetooth) {
-      setStatus("unsupported");
-      const errorMsg = "Web Bluetooth API is not supported by your browser. SOS broadcast cannot be initiated.";
-      setError(errorMsg);
-      window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activation Failed: Web Bluetooth not supported.` }));
-      toast({ title: "Bluetooth Error", description: "Web Bluetooth not supported. Cannot broadcast SOS.", variant: "destructive" });
-      return;
-    }
+    // No need to check navigator.bluetooth for this same-device simulation
 
     try {
       const loc = await getDeviceLocation();
@@ -168,7 +175,8 @@ export function BluetoothSOSPanel() {
     if (rebroadcastIntervalId) clearInterval(rebroadcastIntervalId);
     setRebroadcastIntervalId(null);
     setCountdown(0);
-    window.dispatchEvent(new CustomEvent('newAppLog', { detail: "SOS Deactivated. Alerts stopped." }));
+    localStorage.removeItem(LOCAL_STORAGE_SOS_KEY); // Remove from localStorage
+    window.dispatchEvent(new CustomEvent('newAppLog', { detail: "SOS Deactivated. Alerts stopped. Local signal cleared." }));
     toast({ title: "SOS Deactivated", description: "SOS broadcast and alerts have been stopped." });
   };
 
@@ -189,14 +197,14 @@ export function BluetoothSOSPanel() {
                 } catch(e){}
             }
             const deviceName = `SOS_${victimNameForDisplay}_${location.lat}_${location.lon}`;
-            return { icon: <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />, text: `SOS Active! Broadcasting (simulated) as: ${deviceName}`, color: "text-green-500" };
+            return { icon: <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />, text: `SOS Active! Broadcasting locally as: ${deviceName}`, color: "text-green-500" };
          }
-         return { icon: <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />, text: `SOS Active! Broadcasting... Location N/A`, color: "text-green-500" };
+         return { icon: <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />, text: `SOS Active! Broadcasting locally... Location N/A`, color: "text-green-500" };
 
       case "error":
         return { icon: <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: `Error: ${error}`, color: "text-destructive" };
-      case "unsupported":
-        return { icon: <Bluetooth className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: "Bluetooth not supported by browser.", color: "text-destructive" };
+      case "unsupported": // This case is less relevant now for local simulation
+        return { icon: <Bluetooth className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: "SOS feature unavailable.", color: "text-destructive" };
       default:
         return { icon: <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />, text: "SOS is OFF.", color: "text-muted-foreground" };
     }
@@ -209,7 +217,7 @@ export function BluetoothSOSPanel() {
       <CardHeader>
         <CardTitle className="font-headline text-xl sm:text-2xl text-center">SOS Alert Box</CardTitle>
         <CardDescription className="text-center text-xs sm:text-sm">
-          Broadcast your location and activate alerts. Bluetooth advertising is simulated.
+          Broadcast your location (locally on this device) and activate alerts.
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center space-y-3 py-4 sm:py-6">
@@ -227,10 +235,10 @@ export function BluetoothSOSPanel() {
               <Volume2 className="w-3 h-3" /> <span>SOS Buzzer Active</span>
             </div>
             <p className="text-xs text-muted-foreground pt-1">
-              Rebroadcasting signal in: <span className="font-semibold text-primary">{countdown}s</span>
+              Rebroadcasting signal (locally) in: <span className="font-semibold text-primary">{countdown}s</span>
             </p>
              <p className="text-xs text-muted-foreground mt-2">
-            Rescuers nearby may detect your (simulated) signal.
+            The Rescuer panel on this device can detect this signal.
           </p>
           </div>
         )}

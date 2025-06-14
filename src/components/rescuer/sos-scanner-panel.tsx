@@ -1,110 +1,75 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bluetooth, Search, WifiOff, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
+import { Bluetooth, Search, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin, AlertTriangle as AlertTriangleIcon, Info } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DetectedSignal as BaseDetectedSignal } from '@/types/signals';
 
 interface DetectedSignal extends BaseDetectedSignal {
-  status?: string;
-  advertisedName?: string; 
+  status?: string; // Rescuer-defined status for the signal
+  // advertisedName is already in BaseDetectedSignal
 }
 
-type ScanStatus = "idle" | "scanning" | "error" | "simulating";
+type ScanStatus = "idle" | "scanning" | "error"; // Removed "simulating" and "unsupported"
+const LOCAL_STORAGE_SOS_KEY = 'currentR.A.D.A.R.SOSSignal';
+
 
 const ListItemWrapper = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <li className={`p-2 sm:p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${className}`}>{children}</li>
 );
 
-const VICTIM_STATUSES = ["Pending", "Located", "Assistance In Progress", "Rescued", "No Response"];
-
-// Mock data for simulation
-const MOCK_SOS_SIGNALS: Omit<DetectedSignal, 'id' | 'timestamp' | 'status' | 'rssi'>[] = [
-  { name: "Alice Smith", advertisedName: "SOS_AliceSmith_34.0522_-118.2437", lat: 34.0522, lon: -118.2437 },
-  { name: "Bob Ray", advertisedName: "SOS_BobRay_34.0580_-118.2500", lat: 34.0580, lon: -118.2500 },
-  { name: "Carol Day", advertisedName: "SOS_CarolDay_34.0111_-118.1122", lat: 34.0111, lon: -118.1122 },
-  { name: "David Lee", advertisedName: "SOS_DavidLee_33.9988_-118.3000", lat: 33.9988, lon: -118.3000 },
-];
-let mockSignalCounter = 0;
+const VICTIM_STATUSES = ["Pending", "Located", "Assistance In Progress", "Rescued", "No Response", "False Alarm"];
 
 interface SOSScannerPanelProps {
   onSignalsDetected: (signals: DetectedSignal[]) => void;
-  detectedSignals: DetectedSignal[];
+  detectedSignals: DetectedSignal[]; // This will now typically hold 0 or 1 signal from localStorage
   setDetectedSignals: React.Dispatch<React.SetStateAction<DetectedSignal[]>>;
 }
 
 export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetectedSignals }: SOSScannerPanelProps) {
   const [status, setStatus] = useState<ScanStatus>("idle");
-  const [error, setError] = useState<string | null>(null); // Kept for potential future real scan attempts
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const parseSignalName = (advertisedName: string | undefined): { victimName: string | undefined, lat: number | undefined, lon: number | undefined } => {
-    if (advertisedName && advertisedName.startsWith("SOS_")) {
-      const parts = advertisedName.split('_');
-      if (parts.length === 4) { // SOS_Name_Lat_Lon
-        const victimName = parts[1].replace(/_/g, ' '); 
-        const lat = parseFloat(parts[2]);
-        const lon = parseFloat(parts[3]);
-        if (!isNaN(lat) && !isNaN(lon) && victimName) {
-          return { victimName, lat, lon };
-        }
-      } else if (parts.length === 3) { // SOS_Lat_Lon (name missing or couldn't be parsed)
-        const lat = parseFloat(parts[1]);
-        const lon = parseFloat(parts[2]);
-        if (!isNaN(lat) && !isNaN(lon)) {
-          return { victimName: "Unknown (via SOS)", lat, lon };
-        }
-      }
-    }
-    return { victimName: undefined, lat: undefined, lon: undefined };
-  };
   
   const startScan = async () => {
-    setStatus("simulating"); // Changed from "scanning" to "simulating"
+    setStatus("scanning");
     setError(null);
     
-    // Simulate discovering a new signal
-    toast({ title: "Scan Initiated (Simulation)", description: "Simulating discovery of nearby SOS signals..." });
+    toast({ title: "Checking Local SOS", description: "Looking for active SOS signal from this device..." });
 
-    setTimeout(() => { // Simulate a delay for scanning
-      const mockBaseSignal = MOCK_SOS_SIGNALS[mockSignalCounter % MOCK_SOS_SIGNALS.length];
-      mockSignalCounter++;
+    setTimeout(() => { // Simulate a short delay for "scanning" localStorage
+      const storedSignalData = localStorage.getItem(LOCAL_STORAGE_SOS_KEY);
+      let newDetectedSignals: DetectedSignal[] = [];
 
-      const parsed = parseSignalName(mockBaseSignal.advertisedName);
-      const simulatedRssi = -50 - Math.floor(Math.random() * 30); // Random RSSI between -50 and -80
-
-      const newSignal: DetectedSignal = {
-        id: `sim_${Date.now()}_${mockBaseSignal.advertisedName}`, // Unique ID for simulated signal
-        advertisedName: mockBaseSignal.advertisedName,
-        name: parsed.victimName || mockBaseSignal.name || "Unknown Simulated Device",
-        lat: parsed.lat,
-        lon: parsed.lon,
-        rssi: simulatedRssi, 
-        timestamp: Date.now(),
-        status: "Pending",
-      };
-
-      setDetectedSignals(prevSignals => {
-        const existingSignalIndex = prevSignals.findIndex(s => s.advertisedName === newSignal.advertisedName);
-        let updatedSignals;
-        if (existingSignalIndex > -1) {
-          // For simulation, let's update RSSI and timestamp if "found" again
-          updatedSignals = prevSignals.map(s => 
-            s.advertisedName === newSignal.advertisedName ? {...s, rssi: newSignal.rssi, timestamp: newSignal.timestamp} : s
-          );
-        } else {
-          updatedSignals = [...prevSignals, newSignal];
+      if (storedSignalData) {
+        try {
+          const signalFromStorage: DetectedSignal = JSON.parse(storedSignalData);
+          // Ensure it has a rescuer-side status if not present (e.g., from previous session if statuses were saved)
+          const existingSignal = detectedSignals.find(s => s.id === signalFromStorage.id);
+          signalFromStorage.status = existingSignal?.status || "Pending"; 
+          
+          newDetectedSignals = [signalFromStorage];
+          toast({ title: "Local SOS Signal Found", description: `Tracking: ${signalFromStorage.name}` });
+          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Detected active local SOS for ${signalFromStorage.name}` }));
+        } catch (e) {
+          console.error("Error parsing signal from localStorage:", e);
+          setError("Could not read local SOS signal data.");
+           toast({ title: "Local SOS Error", description: "Could not read local SOS data. It might be corrupted.", variant: "destructive" });
+           window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Error parsing local SOS data from localStorage.` }));
         }
-        onSignalsDetected(updatedSignals);
-        toast({ title: "Simulated Signal Detected", description: `Found: ${newSignal.name}` });
-        return updatedSignals;
-      });
+      } else {
+        toast({ title: "No Local SOS Signal", description: "No active SOS signal found from this device." });
+        window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: No active local SOS signal found on this device.` }));
+      }
+      
+      setDetectedSignals(newDetectedSignals); // Update the local state for this panel
+      onSignalsDetected(newDetectedSignals); // Propagate to parent (RescuerPage)
       setStatus("idle");
-    }, 1500); // Simulate 1.5 second scan time
+    }, 500); // Short delay
   };
 
 
@@ -112,18 +77,35 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
     const updatedSignals = detectedSignals.map(signal =>
       signal.id === signalId ? { ...signal, status: newStatus } : signal
     );
-    setDetectedSignals(updatedSignals);
-    onSignalsDetected(updatedSignals); 
+    setDetectedSignals(updatedSignals); // Update local state
+    onSignalsDetected(updatedSignals); // Propagate to parent
+
+    // If the updated signal was from localStorage, update it there too with the new status
+    const signalFromStorageRaw = localStorage.getItem(LOCAL_STORAGE_SOS_KEY);
+    if (signalFromStorageRaw) {
+        try {
+            let signalFromStorage: DetectedSignal = JSON.parse(signalFromStorageRaw);
+            if (signalFromStorage.id === signalId) {
+                signalFromStorage.status = newStatus;
+                localStorage.setItem(LOCAL_STORAGE_SOS_KEY, JSON.stringify(signalFromStorage));
+            }
+        } catch (e) {
+            console.error("Could not update status in localStorage for signal:", signalId, e);
+        }
+    }
+    window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Rescuer: Updated status for ${signalId} to ${newStatus}.` }));
   };
 
 
-  const getSignalStrengthIcon = (rssi: number) => {
+  const getSignalStrengthIcon = (rssi: number | undefined) => {
+    if (rssi === undefined) return <SignalMedium className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />; // Default for unknown
     if (rssi > -60) return <SignalHigh className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />;
     if (rssi > -75) return <SignalMedium className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />;
     return <SignalLow className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />;
   };
 
-  const getProximityText = (rssi: number) => {
+  const getProximityText = (rssi: number | undefined) => {
+    if (rssi === undefined) return "Unknown";
     if (rssi > -60) return "Very Close";
     if (rssi > -75) return "Close";
     if (rssi > -90) return "Medium";
@@ -135,23 +117,23 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
       <CardHeader>
         <CardTitle className="font-headline text-xl flex items-center gap-2">
           <Bluetooth className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-          SOS Signal Scanner (Simulation)
+          Local SOS Signal Monitor
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Simulates scanning for nearby Bluetooth SOS signals. Device names like 'SOS_Name_Lat_Lon' are parsed. Actual Web Bluetooth scanning is limited in browsers.
+          Checks for an active SOS signal being broadcast by the R.A.D.A.R app on THIS device.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button onClick={startScan} disabled={status === "simulating"} className="w-full sm:w-auto mb-4 sm:mb-6 bg-primary hover:bg-primary/90 text-sm">
-          {status === "simulating" ? (
+        <Button onClick={startScan} disabled={status === "scanning"} className="w-full sm:w-auto mb-4 sm:mb-6 bg-primary hover:bg-primary/90 text-sm">
+          {status === "scanning" ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Search className="mr-2 h-4 w-4" />
           )}
-          {status === "simulating" ? "Simulating Scan..." : "Start New Scan (Simulated)"}
+          {status === "scanning" ? "Checking..." : "Check for Local SOS"}
         </Button>
         
-        {error && ( // This block might be less relevant if we fully simulate, but kept for structure
+        {error && (
           <div className="text-destructive text-sm flex items-center gap-2 p-3 sm:p-4 bg-destructive/10 rounded-md">
             <AlertTriangleIcon className="w-5 h-5 sm:w-6 sm:h-6" /> 
             <p>{error}</p>
@@ -174,7 +156,7 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
                     )}
                      <div className="flex items-center gap-1.5 text-xs mt-0.5">
                         {getSignalStrengthIcon(signal.rssi)}
-                        <span>{getProximityText(signal.rssi)} (RSSI: {signal.rssi} dBm - simulated)</span>
+                        <span>{getProximityText(signal.rssi)} (RSSI: {signal.rssi !== undefined ? `${signal.rssi} dBm` : 'N/A'} - local)</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {signal.advertisedName && signal.advertisedName !== signal.name ? `Raw Signal: ${signal.advertisedName}` : `ID: ${signal.id}`}
@@ -203,17 +185,16 @@ export function SOSScannerPanel({ onSignalsDetected, detectedSignals, setDetecte
           </ul>
         ) : (
           status === "idle" && !error && ( 
-            <p className="text-muted-foreground text-sm text-center py-4">No simulated signals detected yet. Start a scan.</p>
-          )
-        )}
-         {status === "idle" && !navigator.bluetooth && (
-            <div className="mt-4 text-orange-600 text-xs flex items-center gap-2 p-2 bg-orange-500/10 rounded-md">
-                <WifiOff className="w-4 h-4" />
-                <span>Note: Web Bluetooth API is not available in your browser. Scanning is fully simulated.</span>
+            <div className="text-muted-foreground text-sm text-center py-4 flex flex-col items-center gap-2">
+              <Info className="w-8 h-8 text-primary/70"/>
+              <p>No active local SOS signal detected.</p>
+              <p className="text-xs">Activate SOS in "User Mode" on this device, then "Check for Local SOS".</p>
             </div>
+          )
         )}
       </CardContent>
     </Card>
   );
 }
 
+    
