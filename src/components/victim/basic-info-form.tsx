@@ -29,18 +29,18 @@ const genderOptions = [
 ];
 
 const countryCodes = [
-  { name: "United States", code: "+1" },
-  { name: "Canada", code: "+1 CA" },
-  { name: "United Kingdom", code: "+44" },
-  { name: "India", code: "+91" },
-  { name: "Australia", code: "+61" },
-  { name: "Germany", code: "+49" },
-  { name: "France", code: "+33" },
-  { name: "Brazil", code: "+55" },
-  { name: "South Africa", code: "+27" },
-  { name: "Japan", code: "+81" },
-  { name: "China", code: "+86" },
-  { name: "Other/Manual", code: "MANUAL_CODE"},
+  { name: "United States", code: "+1", flag: "🇺🇸" },
+  { name: "Canada", code: "+1 CA", flag: "🇨🇦" },
+  { name: "United Kingdom", code: "+44", flag: "🇬🇧" },
+  { name: "India", code: "+91", flag: "🇮🇳" },
+  { name: "Australia", code: "+61", flag: "🇦🇺" },
+  { name: "Germany", code: "+49", flag: "🇩🇪" },
+  { name: "France", code: "+33", flag: "🇫🇷" },
+  { name: "Brazil", code: "+55", flag: "🇧🇷" },
+  { name: "South Africa", code: "+27", flag: "🇿🇦" },
+  { name: "Japan", code: "+81", flag: "🇯🇵" },
+  { name: "China", code: "+86", flag: "🇨🇳" },
+  { name: "Other/Manual", code: "MANUAL_CODE", flag: "🏳️" },
 ];
 
 
@@ -53,6 +53,7 @@ const basicInfoSchema = z.object({
   allergies: z.string().optional(),
   medications: z.string().optional(),
   conditions: z.string().optional(),
+  sharedEmergencyContactCountryCode: z.string().optional(),
   emergencyContact1Name: z.string().optional(),
   emergencyContact1CountryCode: z.string().optional(),
   emergencyContact1Phone: z.string().optional(),
@@ -80,14 +81,15 @@ export function BasicInfoForm() {
       allergies: "",
       medications: "",
       conditions: "",
+      sharedEmergencyContactCountryCode: "+1", // Default shared code
       emergencyContact1Name: "",
-      emergencyContact1CountryCode: "",
+      emergencyContact1CountryCode: "+1", // Synced with shared
       emergencyContact1Phone: "",
       emergencyContact2Name: "",
-      emergencyContact2CountryCode: "",
+      emergencyContact2CountryCode: "+1", // Synced with shared
       emergencyContact2Phone: "",
       emergencyContact3Name: "",
-      emergencyContact3CountryCode: "",
+      emergencyContact3CountryCode: "+1", // Synced with shared
       emergencyContact3Phone: "",
       customSOSMessage: "Emergency! I need help. My location is being broadcast.",
     },
@@ -113,11 +115,22 @@ export function BasicInfoForm() {
           dob: parsedInfo.dob ? parsedInfo.dob : undefined,
         };
         form.reset(formData);
+
+        const effectiveSharedCode = form.getValues('sharedEmergencyContactCountryCode') || "+1";
+        form.setValue('emergencyContact1CountryCode', effectiveSharedCode);
+        form.setValue('emergencyContact2CountryCode', effectiveSharedCode);
+        form.setValue('emergencyContact3CountryCode', effectiveSharedCode);
+        
         setIsSaved(true); 
       } catch (e) {
         console.error("Failed to parse saved basic info", e);
         toast({ title: "Error", description: "Could not load previously saved information.", variant: "destructive"});
       }
+    } else {
+        const defaultSharedCode = form.getValues('sharedEmergencyContactCountryCode');
+        form.setValue('emergencyContact1CountryCode', defaultSharedCode);
+        form.setValue('emergencyContact2CountryCode', defaultSharedCode);
+        form.setValue('emergencyContact3CountryCode', defaultSharedCode);
     }
   }, [form, toast]);
 
@@ -154,19 +167,19 @@ export function BasicInfoForm() {
     if (details.conditions) detailsString += `Conditions: ${details.conditions}\n`;
 
     detailsString += "\nEmergency Contacts:\n";
+    const sharedCountryCodeValue = details.sharedEmergencyContactCountryCode;
+    let displaySharedCountryCode = "";
+    if (sharedCountryCodeValue && sharedCountryCodeValue !== "MANUAL_CODE") {
+        displaySharedCountryCode = sharedCountryCodeValue;
+    }
+
+
     for (let i = 1; i <= 3; i++) {
         const contactName = details[`emergencyContact${i}Name` as keyof VictimBasicInfo];
-        let countryCodeValue = details[`emergencyContact${i}CountryCode` as keyof VictimBasicInfo];
         const contactPhone = details[`emergencyContact${i}Phone` as keyof VictimBasicInfo];
         
-        let displayCountryCode = "";
-        if (countryCodeValue && countryCodeValue !== "MANUAL_CODE") {
-            displayCountryCode = countryCodeValue;
-        }
-
-
-        if (contactName || displayCountryCode || contactPhone) {
-            detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${displayCountryCode}${contactPhone || 'N/A'}\n`;
+        if (contactName || contactPhone) { // Only add contact if name or phone exists
+            detailsString += `Contact ${i}: ${contactName || 'N/A'} - ${displaySharedCountryCode}${contactPhone || 'N/A'}\n`;
         }
     }
     
@@ -363,6 +376,51 @@ export function BasicInfoForm() {
 
             <Separator className="my-3"/>
             <p className="text-sm font-medium text-foreground">Emergency Contacts</p>
+            <FormField
+              control={form.control}
+              name="sharedEmergencyContactCountryCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="sharedEmergencyContactCountryCode" className="text-xs flex items-center gap-1"><Globe className="w-3 h-3"/>Country for Contacts</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue('emergencyContact1CountryCode', value);
+                      form.setValue('emergencyContact2CountryCode', value);
+                      form.setValue('emergencyContact3CountryCode', value);
+                    }}
+                    value={field.value || ""}
+                  >
+                    <FormControl>
+                      <SelectTrigger id="sharedEmergencyContactCountryCode" className="text-sm">
+                        <SelectValue placeholder="Select Country">
+                          {(() => {
+                            const selectedCode = field.value; // Use field.value directly
+                            const country = countryCodes.find(c => c.code === selectedCode);
+                            return country ? (
+                              <span className="flex items-center">
+                                <span className="mr-2">{country.flag}</span>
+                                {country.name} ({country.code === "MANUAL_CODE" ? "Manual" : country.code})
+                              </span>
+                            ) : "Select Country";
+                          })()}
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {countryCodes.map((country) => (
+                        <SelectItem key={country.name} value={country.code} className="text-sm">
+                          <span className="mr-2">{country.flag}</span>
+                          {country.name} ({country.code === "MANUAL_CODE" ? "Manual" : country.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {[1, 2, 3].map(contactIndex => (
               <div key={contactIndex} className="space-y-2 p-2 border rounded-md bg-muted/30">
                 <p className="text-xs font-semibold text-muted-foreground">Contact {contactIndex}</p>
@@ -379,53 +437,19 @@ export function BasicInfoForm() {
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-[theme(spacing.40)_1fr] gap-2 items-end">
-                  <FormField
-                    control={form.control}
-                    name={`emergencyContact${contactIndex}CountryCode` as keyof VictimBasicInfo}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor={`emergencyContact${contactIndex}CountryCode`} className="text-xs flex items-center gap-1"><Globe className="w-3 h-3"/>Country</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(value); 
-                            if (value !== form.getValues('emergencyContact1CountryCode')) form.setValue('emergencyContact1CountryCode', value);
-                            if (value !== form.getValues('emergencyContact2CountryCode')) form.setValue('emergencyContact2CountryCode', value);
-                            if (value !== form.getValues('emergencyContact3CountryCode')) form.setValue('emergencyContact3CountryCode', value);
-                          }}
-                          value={field.value || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger id={`emergencyContact${contactIndex}CountryCode`} className="text-sm">
-                              <SelectValue placeholder="Select Country" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {countryCodes.map((country) => (
-                              <SelectItem key={country.name} value={country.code} className="text-sm">
-                                {country.name} ({country.code === "MANUAL_CODE" ? "Manual" : country.code})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`emergencyContact${contactIndex}Phone` as keyof VictimBasicInfo}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor={`emergencyContact${contactIndex}Phone`} className="text-xs flex items-center gap-1"><Phone className="w-3 h-3"/>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input id={`emergencyContact${contactIndex}Phone`} placeholder="Phone Number" {...field} className="text-sm"/>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name={`emergencyContact${contactIndex}Phone` as keyof VictimBasicInfo}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor={`emergencyContact${contactIndex}Phone`} className="text-xs flex items-center gap-1"><Phone className="w-3 h-3"/>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input id={`emergencyContact${contactIndex}Phone`} placeholder="Phone Number" {...field} className="text-sm"/>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             ))}
             
@@ -460,8 +484,3 @@ export function BasicInfoForm() {
     </Card>
   );
 }
-
-
-    
-
-    

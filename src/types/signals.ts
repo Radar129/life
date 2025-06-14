@@ -19,6 +19,7 @@ export interface VictimBasicInfo {
   allergies?: string;
   medications?: string;
   conditions?: string;
+  sharedEmergencyContactCountryCode?: string; // Added for shared country code selector
   emergencyContact1Name?: string;
   emergencyContact1CountryCode?: string;
   emergencyContact1Phone?: string;
@@ -30,3 +31,4 @@ export interface VictimBasicInfo {
   emergencyContact3Phone?: string;
   customSOSMessage?: string;
 }
+
