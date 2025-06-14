@@ -5,20 +5,20 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+// import { useToast } from '@/hooks/use-toast'; // Removed useToast import
 
 export default function RescuerLoginPage() {
   const router = useRouter();
-  const { toast } = useToast();
+  // const { toast } = useToast(); // Removed toast usage
 
   useEffect(() => {
     // Automatically "log in" the rescuer and redirect
     if (typeof window !== 'undefined') {
       localStorage.setItem('isRescuerAuthenticated', 'true');
-      toast({ title: "Access Granted", description: "Redirecting to Rescuer Dashboard..." });
+      // toast({ title: "Access Granted", description: "Redirecting to Rescuer Dashboard..." }); // Removed toast call
       router.replace('/rescuer');
     }
-  }, [router]); // Removed toast from dependency array
+  }, [router]);
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] py-6">
@@ -39,4 +39,3 @@ export default function RescuerLoginPage() {
     </div>
   );
 }
-
