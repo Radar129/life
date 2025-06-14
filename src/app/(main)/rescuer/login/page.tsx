@@ -1,100 +1,42 @@
 
 "use client";
 
-import { useState, FormEvent, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { AlertTriangle, LogIn, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// In a real app, this would be securely managed. For prototype:
-const MASTER_KEY = "RESCUE123"; 
-
 export default function RescuerLoginPage() {
-  const [masterKey, setMasterKey] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    // If already authenticated, redirect to dashboard
-    if (typeof window !== 'undefined' && localStorage.getItem('isRescuerAuthenticated') === 'true') {
+    // Automatically "log in" the rescuer and redirect
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('isRescuerAuthenticated', 'true');
+      toast({ title: "Access Granted", description: "Redirecting to Rescuer Dashboard..." });
       router.replace('/rescuer');
     }
-  }, [router]);
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setIsLoading(true);
-
-    // Simulate API call / key check
-    setTimeout(() => {
-      if (masterKey === MASTER_KEY) {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('isRescuerAuthenticated', 'true');
-        }
-        toast({ title: "Login Successful", description: "Redirecting to Rescuer Dashboard..." });
-        router.push('/rescuer');
-      } else {
-        setError("Invalid Master Key. Access Denied.");
-        toast({ title: "Login Failed", description: "Invalid master key.", variant: "destructive" });
-        setIsLoading(false);
-      }
-    }, 1000);
-  };
+  }, [router, toast]);
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] py-6"> {/* Adjusted min-h and py */}
+    <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] py-6">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-xl sm:text-2xl mb-1">Rescuer Team Login</CardTitle>
+          <CardTitle className="font-headline text-xl sm:text-2xl mb-1">Rescuer Area Access</CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            Enter the Master Key to access the Rescuer Dashboard.
+            Granting access to the Rescuer Dashboard.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4 p-4 sm:p-6">
-            <div className="space-y-1.5">
-              <Label htmlFor="masterKey" className="text-xs sm:text-sm">Master Key</Label>
-              <Input
-                id="masterKey"
-                type="password"
-                placeholder="Enter your secure master key"
-                value={masterKey}
-                onChange={(e) => setMasterKey(e.target.value)}
-                disabled={isLoading}
-                className="text-sm sm:text-base"
-              />
-            </div>
-            {error && (
-              <div className="flex items-center text-xs text-destructive bg-destructive/10 p-2 rounded-md">
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                {error}
-              </div>
-            )}
-          </CardContent>
-          <CardFooter className="p-4 sm:p-6 border-t">
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-sm sm:text-base py-2.5 sm:py-3" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                <>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Access Dashboard
-                </>
-              )}
-            </Button>
-          </CardFooter>
-        </form>
+        <CardContent className="space-y-4 p-4 sm:p-6 text-center">
+          <div className="flex flex-col items-center justify-center space-y-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Redirecting, please wait...</p>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );
 }
+
