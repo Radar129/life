@@ -1,9 +1,11 @@
 
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ListChecks } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ListChecks, Copy } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 // Dummy log entries for now
 const dummyLogs = [
@@ -16,8 +18,30 @@ const dummyLogs = [
 
 
 export function NotificationLogPanel() {
+  const { toast } = useToast();
   // In a real app, logs would be fetched from localStorage or a state management solution
   const logs = dummyLogs; // Using dummy logs for prototype
+
+  const handleCopyLog = () => {
+    if (logs.length === 0) {
+      toast({ title: "Log Empty", description: "There is no activity to copy.", variant: "default" });
+      return;
+    }
+
+    let logString = "Notification & Activity Log:\n\n";
+    logs.forEach(log => {
+      logString += `${log.timestamp.toLocaleString()} - ${log.message}\n`;
+    });
+
+    navigator.clipboard.writeText(logString.trim())
+      .then(() => {
+        toast({ title: "Log Copied", description: "The activity log has been copied to the clipboard." });
+      })
+      .catch(err => {
+        console.error("Failed to copy log: ", err);
+        toast({ title: "Copy Failed", description: "Could not copy the log to clipboard.", variant: "destructive" });
+      });
+  };
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
@@ -50,6 +74,11 @@ export function NotificationLogPanel() {
           <p className="text-sm text-muted-foreground text-center py-4">No activity logged yet.</p>
         )}
       </CardContent>
+      <CardFooter className="flex justify-end p-4 border-t">
+        <Button onClick={handleCopyLog} variant="outline" size="sm" className="text-sm">
+          <Copy className="mr-2 h-4 w-4" /> Copy Log
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
