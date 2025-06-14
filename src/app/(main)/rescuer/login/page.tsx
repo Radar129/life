@@ -18,7 +18,7 @@ export default function RescuerLoginPage() {
       toast({ title: "Access Granted", description: "Redirecting to Rescuer Dashboard..." });
       router.replace('/rescuer');
     }
-  }, [router, toast]);
+  }, [router]); // Removed toast from dependency array
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] py-6">
