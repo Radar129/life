@@ -27,7 +27,7 @@ export function ConnectivityStatusBox() {
     signalStrength: 3,
     bluetoothOn: true,
     wifiConnected: true,
-    wifiNetworkName: "HomeNet_5G", // Changed from HomeNet_5G_Simulated
+    wifiNetworkName: "HomeNet_5G",
     hotspotOn: false,
     locationServicesOn: false,
   });
@@ -155,7 +155,7 @@ export function ConnectivityStatusBox() {
           <StatusItem
             icon={<Wifi className={`w-4 h-4 ${status.wifiConnected ? 'text-green-500' : 'text-muted-foreground'}`} />}
             label="Wi-Fi"
-            value={status.wifiConnected ? `Connected (${status.wifiNetworkName || "MyNetwork"})` : "Disconnected"} // Changed from MyNetwork_Simulated
+            value={status.wifiConnected ? `Connected (${status.wifiNetworkName || "MyNetwork"})` : "Disconnected"}
           />
           <StatusItem icon={<HotspotIcon className={`w-4 h-4 ${status.hotspotOn ? 'text-orange-500' : 'text-muted-foreground'}`} />} label="Hotspot" value={status.hotspotOn ? "ON" : "OFF"} />
           <StatusItem icon={<LocateFixed className={`w-4 h-4 ${status.locationServicesOn ? 'text-green-500' : 'text-destructive'}`} />} label="Location Svcs" value={status.locationServicesOn ? "ON" : "OFF"} />
