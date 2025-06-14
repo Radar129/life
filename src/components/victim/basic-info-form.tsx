@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, Save, NotebookPen, Users, CalendarIcon, Copy, Globe, MessageSquare, Upload, X, User as UserIcon, Trash2 } from 'lucide-react';
+import { UserCircle, Pill, HeartPulse, ShieldAlert, Phone, Save, NotebookPen, Users, CalendarIcon, Copy, Globe, MessageSquare, Upload, X, User as UserIcon, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { VictimBasicInfo } from '@/types/signals';
 import { Separator } from '@/components/ui/separator';
@@ -70,7 +70,7 @@ const basicInfoSchema = z.object({
 
 export function BasicInfoForm() {
   const { toast } = useToast();
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(false); // Tracks if the current form content matches a saved state
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const defaultFormValuesRef = useRef<VictimBasicInfo>({
@@ -99,12 +99,14 @@ export function BasicInfoForm() {
   const form = useForm<VictimBasicInfo>({
     resolver: zodResolver(basicInfoSchema),
     defaultValues: defaultFormValuesRef.current,
+    mode: 'onChange', // Validate on change for immediate feedback
   });
 
-  const onSubmit: SubmitHandler<VictimBasicInfo> = (data) => {
+  const onSubmit: SubmitHandler<VictimBasicInfo> = async (data) => {
     console.log("Basic Info Submitted:", data);
     localStorage.setItem('victimBasicInfo', JSON.stringify(data));
-    setIsSaved(true);
+    setIsSaved(true); // Mark current state as saved
+    form.reset(data, { keepValues: true, keepDirty: false, keepIsSubmitted: false }); // Resets dirty state
     toast({
       title: "Information Saved",
       description: "Your information has been saved locally on this device.",
@@ -118,44 +120,52 @@ export function BasicInfoForm() {
       try {
         const parsedInfo = JSON.parse(savedInfo) as VictimBasicInfo;
         const formData = {
-          ...defaultFormValuesRef.current, // Ensure all keys from default are present
-          ...parsedInfo, // Override with saved data
+          ...defaultFormValuesRef.current, 
+          ...parsedInfo, 
           dob: parsedInfo.dob ? parsedInfo.dob : undefined,
           profilePictureDataUrl: parsedInfo.profilePictureDataUrl || "",
         };
-        form.reset(formData);
+        form.reset(formData); // Load saved data
         
         const effectiveSharedCode = form.getValues('sharedEmergencyContactCountryCode') || defaultFormValuesRef.current.sharedEmergencyContactCountryCode;
         form.setValue('emergencyContact1CountryCode', form.getValues('emergencyContact1CountryCode') || effectiveSharedCode);
         form.setValue('emergencyContact2CountryCode', form.getValues('emergencyContact2CountryCode') || effectiveSharedCode);
         form.setValue('emergencyContact3CountryCode', form.getValues('emergencyContact3CountryCode') || effectiveSharedCode);
 
-        setIsSaved(true); 
+        setIsSaved(true); // Mark as initially saved if data was loaded
       } catch (e) {
         console.error("Failed to parse saved basic info", e);
+        form.reset(defaultFormValuesRef.current); // Reset to defaults on error
+        setIsSaved(false);
         toast({ title: "Error", description: "Could not load previously saved information.", variant: "destructive"});
       }
     } else {
-        form.reset(defaultFormValuesRef.current);
+        form.reset(defaultFormValuesRef.current); // Reset to defaults if no saved data
         const defaultSharedCode = defaultFormValuesRef.current.sharedEmergencyContactCountryCode;
         form.setValue('emergencyContact1CountryCode', defaultSharedCode);
         form.setValue('emergencyContact2CountryCode', defaultSharedCode);
         form.setValue('emergencyContact3CountryCode', defaultSharedCode);
-        setIsSaved(false); // No data initially, so not "saved"
+        setIsSaved(false); 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.reset, form.setValue, toast]);
+  }, [form.reset, form.setValue, toast]); // form is stable, so form.reset and form.setValue are too
+
+  const handleFieldChange = (fieldUpdateFn: () => void) => {
+    fieldUpdateFn();
+    setIsSaved(false);
+  };
+
 
   const handleDobChange = (date: Date | undefined) => {
-    if (date) {
-      form.setValue('dob', format(date, 'yyyy-MM-dd'));
-      const age = differenceInYears(new Date(), date);
-      form.setValue('age', age.toString());
-    } else {
-      form.setValue('dob', undefined);
-      form.setValue('age', '');
-    }
     setIsSaved(false);
+    if (date) {
+      form.setValue('dob', format(date, 'yyyy-MM-dd'), { shouldValidate: true, shouldDirty: true });
+      const age = differenceInYears(new Date(), date);
+      form.setValue('age', age.toString(), { shouldValidate: true, shouldDirty: true });
+    } else {
+      form.setValue('dob', undefined, { shouldValidate: true, shouldDirty: true });
+      form.setValue('age', '', { shouldValidate: true, shouldDirty: true });
+    }
   };
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,7 +173,7 @@ export function BasicInfoForm() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        form.setValue('profilePictureDataUrl', reader.result as string);
+        form.setValue('profilePictureDataUrl', reader.result as string, { shouldValidate: true, shouldDirty: true });
         setIsSaved(false);
       };
       reader.readAsDataURL(file);
@@ -171,7 +181,7 @@ export function BasicInfoForm() {
   };
 
   const handleRemovePhoto = () => {
-    form.setValue('profilePictureDataUrl', '');
+    form.setValue('profilePictureDataUrl', '', { shouldValidate: true, shouldDirty: true });
     if(fileInputRef.current) {
         fileInputRef.current.value = ""; 
     }
@@ -242,6 +252,21 @@ export function BasicInfoForm() {
     window.dispatchEvent(new CustomEvent('victimInfoUpdated'));
   };
 
+  const { isSubmitting, isValid, isDirty } = form.formState;
+
+  const getButtonText = () => {
+    if (isSubmitting) return "Saving...";
+    if (isSaved && !isDirty) return "Update Information"; // If pristine and previously saved state
+    return "Save Information"; // Default for new or dirty form
+  };
+
+  const getButtonVariant = (): "default" | "outline" => {
+    if (isSubmitting) return "default";
+    if (isSaved && !isDirty) return "outline";
+    return "default";
+  };
+
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
@@ -276,7 +301,7 @@ export function BasicInfoForm() {
                 <FormItem>
                   <FormLabel htmlFor="name" className="text-xs flex items-center gap-1"><UserCircle className="w-3 h-3"/>Name <span className="text-destructive">*</span></FormLabel>
                   <FormControl>
-                    <Input id="name" placeholder="e.g., Jane Doe" {...field} className="text-sm" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
+                    <Input id="name" placeholder="e.g., Jane Doe" {...field} className="text-sm" onChange={(e) => handleFieldChange(() => field.onChange(e))}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -309,8 +334,9 @@ export function BasicInfoForm() {
                         mode="single"
                         selected={field.value ? new Date(field.value) : undefined}
                         onSelect={(date) => {
-                          handleDobChange(date);
-                          field.onChange(date ? format(date, 'yyyy-MM-dd') : undefined);
+                           // handleDobChange will call setIsSaved(false)
+                           handleDobChange(date); 
+                           // field.onChange is implicitly handled by form.setValue in handleDobChange
                         }}
                         disabled={(date) =>
                           date > new Date() || date < new Date("1900-01-01")
@@ -345,7 +371,7 @@ export function BasicInfoForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel htmlFor="gender" className="text-xs flex items-center gap-1"><Users className="w-3 h-3"/>Gender <span className="text-destructive">*</span></FormLabel>
-                  <Select onValueChange={(value) => { field.onChange(value); setIsSaved(false); }} value={field.value || ""}>
+                  <Select onValueChange={(value) => handleFieldChange(() => field.onChange(value))} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger id="gender" className="text-sm">
                         <SelectValue placeholder="Select gender" />
@@ -369,7 +395,7 @@ export function BasicInfoForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel htmlFor="bloodGroup" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Blood Group <span className="text-destructive">*</span></FormLabel>
-                  <Select onValueChange={(value) => { field.onChange(value); setIsSaved(false); }} value={field.value || ""}>
+                  <Select onValueChange={(value) => handleFieldChange(() => field.onChange(value))} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger id="bloodGroup" className="text-sm">
                         <SelectValue placeholder="Select blood group" />
@@ -398,7 +424,7 @@ export function BasicInfoForm() {
               <FormItem>
                 <FormLabel htmlFor="allergies" className="text-xs flex items-center gap-1"><ShieldAlert className="w-3 h-3"/>Allergies <span className="text-destructive">*</span></FormLabel>
                 <FormControl>
-                  <Textarea id="allergies" placeholder="e.g., Penicillin, Peanuts, or None" {...field} className="text-sm min-h-[60px]" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
+                  <Textarea id="allergies" placeholder="e.g., Penicillin, Peanuts, or None" {...field} className="text-sm min-h-[60px]" onChange={(e) => handleFieldChange(() => field.onChange(e))}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -411,7 +437,7 @@ export function BasicInfoForm() {
               <FormItem>
                 <FormLabel htmlFor="medications" className="text-xs flex items-center gap-1"><Pill className="w-3 h-3"/>Current Medications <span className="text-destructive">*</span></FormLabel>
                 <FormControl>
-                  <Textarea id="medications" placeholder="e.g., Insulin, Aspirin, or None" {...field} className="text-sm min-h-[60px]" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
+                  <Textarea id="medications" placeholder="e.g., Insulin, Aspirin, or None" {...field} className="text-sm min-h-[60px]" onChange={(e) => handleFieldChange(() => field.onChange(e))}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -424,7 +450,7 @@ export function BasicInfoForm() {
               <FormItem>
                 <FormLabel htmlFor="conditions" className="text-xs flex items-center gap-1"><HeartPulse className="w-3 h-3"/>Medical Conditions <span className="text-destructive">*</span></FormLabel>
                 <FormControl>
-                  <Textarea id="conditions" placeholder="e.g., Diabetes, Asthma, or None" {...field} className="text-sm min-h-[60px]" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
+                  <Textarea id="conditions" placeholder="e.g., Diabetes, Asthma, or None" {...field} className="text-sm min-h-[60px]" onChange={(e) => handleFieldChange(() => field.onChange(e))}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -441,23 +467,20 @@ export function BasicInfoForm() {
                 <FormLabel htmlFor="sharedEmergencyContactCountryCode" className="text-xs flex items-center gap-1"><Globe className="w-3 h-3"/>Country for Contacts</FormLabel>
                 <Select
                   onValueChange={(value) => {
-                    field.onChange(value);
-                    // Propagate to individual contacts ONLY if they are currently using the shared code or are empty
-                    // This prevents overriding a contact-specific code if one was set manually
+                    handleFieldChange(() => field.onChange(value));
                     const contact1Code = form.getValues('emergencyContact1CountryCode');
                     const contact2Code = form.getValues('emergencyContact2CountryCode');
                     const contact3Code = form.getValues('emergencyContact3CountryCode');
 
                     if (!contact1Code || contact1Code === form.watch('sharedEmergencyContactCountryCode') || contact1Code === defaultFormValuesRef.current.emergencyContact1CountryCode ) {
-                         form.setValue('emergencyContact1CountryCode', value);
+                         form.setValue('emergencyContact1CountryCode', value, {shouldDirty: true});
                     }
                     if (!contact2Code || contact2Code === form.watch('sharedEmergencyContactCountryCode') || contact2Code === defaultFormValuesRef.current.emergencyContact2CountryCode) {
-                        form.setValue('emergencyContact2CountryCode', value);
+                        form.setValue('emergencyContact2CountryCode', value, {shouldDirty: true});
                     }
                     if (!contact3Code || contact3Code === form.watch('sharedEmergencyContactCountryCode') || contact3Code === defaultFormValuesRef.current.emergencyContact3CountryCode) {
-                         form.setValue('emergencyContact3CountryCode', value);
+                         form.setValue('emergencyContact3CountryCode', value, {shouldDirty: true});
                     }
-                    setIsSaved(false);
                   }}
                   value={field.value || ""}
                 >
@@ -501,7 +524,7 @@ export function BasicInfoForm() {
                   <FormItem>
                     <FormLabel htmlFor={`emergencyContact${contactIndex}Name`} className="text-xs">Name {contactIndex === 1 && <span className="text-destructive">*</span>}</FormLabel>
                     <FormControl>
-                      <Input id={`emergencyContact${contactIndex}Name`} placeholder="Contact Name" {...field} className="text-sm" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
+                      <Input id={`emergencyContact${contactIndex}Name`} placeholder="Contact Name" {...field} className="text-sm" onChange={(e) => handleFieldChange(() => field.onChange(e))}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -514,7 +537,7 @@ export function BasicInfoForm() {
                   <FormItem>
                     <FormLabel htmlFor={`emergencyContact${contactIndex}Phone`} className="text-xs flex items-center gap-1"><Phone className="w-3 h-3"/>Phone Number {contactIndex === 1 && <span className="text-destructive">*</span>}</FormLabel>
                     <FormControl>
-                      <Input id={`emergencyContact${contactIndex}Phone`} placeholder="Phone Number" {...field} className="text-sm" onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
+                      <Input id={`emergencyContact${contactIndex}Phone`} placeholder="Phone Number" {...field} className="text-sm" onChange={(e) => handleFieldChange(() => field.onChange(e))}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -531,7 +554,7 @@ export function BasicInfoForm() {
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <Textarea id="customSOSMessage" placeholder="Default: Emergency! I need help. My location is being broadcast." {...field} className="text-sm min-h-[80px]" maxLength={160} onChange={(e) => { field.onChange(e); setIsSaved(false); }}/>
+                  <Textarea id="customSOSMessage" placeholder="Default: Emergency! I need help. My location is being broadcast." {...field} className="text-sm min-h-[80px]" maxLength={160} onChange={(e) => handleFieldChange(() => field.onChange(e))}/>
                 </FormControl>
                 <FormMessage />
                  <p className="text-xs text-muted-foreground text-right">{field.value?.length || 0}/160 characters</p>
@@ -541,8 +564,19 @@ export function BasicInfoForm() {
 
         </div>
         <div className="flex flex-col sm:flex-row justify-end items-center gap-2 pt-4 border-t mt-auto">
-           <Button type="submit" variant={isSaved ? "outline" : "default"} size="sm" className="text-sm w-full sm:w-auto order-1 sm:order-3">
-            <Save className="mr-2 h-4 w-4"/> {isSaved ? "Update Information" : "Save Information"}
+           <Button 
+            type="submit" 
+            variant={getButtonVariant()} 
+            size="sm" 
+            className="text-sm w-full sm:w-auto order-1 sm:order-3"
+            disabled={!isValid || isSubmitting}
+          >
+            {isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+            ) : (
+              <Save className="mr-2 h-4 w-4"/>
+            )}
+            {getButtonText()}
           </Button>
           <Button 
             type="button" 
@@ -550,10 +584,18 @@ export function BasicInfoForm() {
             size="sm" 
             onClick={handleClearForm} 
             className="text-sm w-full sm:w-auto text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive-foreground order-2 sm:order-2"
+            disabled={isSubmitting}
           >
             <Trash2 className="mr-2 h-4 w-4"/> Clear All
           </Button>
-          <Button type="button" variant="secondary" size="sm" onClick={handleCopyDetails} className="text-sm w-full sm:w-auto order-3 sm:order-1">
+          <Button 
+            type="button" 
+            variant="secondary" 
+            size="sm" 
+            onClick={handleCopyDetails} 
+            className="text-sm w-full sm:w-auto order-3 sm:order-1"
+            disabled={isSubmitting}
+          >
             <Copy className="mr-2 h-4 w-4"/> Copy Details
           </Button>
         </div>
@@ -561,6 +603,5 @@ export function BasicInfoForm() {
     </Form>
   );
 }
-
 
     
