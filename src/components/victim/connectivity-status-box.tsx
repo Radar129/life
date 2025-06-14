@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wifi, Bluetooth, Router as HotspotIcon, MapPin, LocateFixed, Battery, BatteryCharging, PowerOff, Clock, ShieldQuestion, Signal, SignalHigh, SignalLow, SignalMedium } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator'; // Added import
 
 interface ConnectivityState {
   signalStrength: number; // 0-4 bars
@@ -182,4 +183,3 @@ const StatusItem = ({ icon, label, value, children }: { icon: React.ReactNode, l
     {children && <div className="ml-[calc(1rem+0.375rem)]">{children}</div>}
   </div>
 );
-
