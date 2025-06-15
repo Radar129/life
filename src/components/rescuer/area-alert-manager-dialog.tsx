@@ -14,19 +14,23 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogClose,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Loader2, MapPin, CircleDot, MessageSquareText, AlertTriangle as AlertTriangleForm, ListChecks, Trash2, Megaphone, Info, BookText, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import type { MassAlert } from '@/types/signals';
+import type { MassAlert, DetectedSignal, VictimBasicInfo, PersistedSOSState } from '@/types/signals';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn, calculateDistance } from "@/lib/utils";
 
 
 const MASS_ALERT_DEFINITIONS_KEY = 'massAlertDefinitions';
+const LOCAL_STORAGE_VICTIM_SOS_STATE_KEY = 'persistedR.A.D.A.R.SOSState';
+const LOCAL_STORAGE_SHARED_SOS_SIGNAL_KEY = 'currentR.A.D.A.R.SOSSignal';
 const DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES = 0.05;
 const EARTH_RADIUS_KM = 6371;
 
@@ -60,7 +64,7 @@ const fetchNominatimSuggestions = async (query: string): Promise<NominatimSugges
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'R.A.D.A.R-App/1.0 (user@example.com)',
+        'User-Agent': 'R.A.D.A.R-App/1.0 (LifeApp@example.com)', // Replace with your app's name and contact
       },
     });
     if (!response.ok) {
@@ -189,11 +193,87 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       timestamp: Date.now(),
     };
 
+    // Attempt to activate SOS on the current (rescuer's) device if it's in the new zone
+    try {
+        const position = await new Promise<{ coords: GeolocationCoordinates }>((resolve, reject) => 
+            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 })
+        );
+        const rescuerLat = parseFloat(position.coords.latitude.toFixed(4));
+        const rescuerLon = parseFloat(position.coords.longitude.toFixed(4));
+
+        const distance = calculateDistance(rescuerLat, rescuerLon, newAlert.lat, newAlert.lon);
+
+        if (distance <= newAlert.radius) {
+            const existingVictimSOSStateRaw = localStorage.getItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
+            let isAlreadyActive = false;
+            if (existingVictimSOSStateRaw) {
+                const existingState = JSON.parse(existingVictimSOSStateRaw) as PersistedSOSState;
+                if (existingState.isActive) {
+                    isAlreadyActive = true;
+                }
+            }
+
+            if (!isAlreadyActive) {
+                const victimBasicInfoRaw = localStorage.getItem('victimBasicInfo');
+                let victimName = "RescuerDevice"; 
+                let baseCustomSosMessage = "Emergency! Rescuer device in self-created alert zone.";
+
+                if (victimBasicInfoRaw) {
+                    try {
+                        const parsedInfo = JSON.parse(victimBasicInfoRaw) as VictimBasicInfo;
+                        if (parsedInfo.name) victimName = parsedInfo.name.replace(/\s+/g, '_').substring(0, 20);
+                        // Keep parsedInfo.customSOSMessage separate, use newAlert.message first for this context
+                    } catch (e) { /* use defaults */ }
+                }
+                
+                const advertisedName = `SOS_${victimName}_${rescuerLat}_${rescuerLon}`;
+                const effectiveSosMessage = newAlert.message || baseCustomSosMessage;
+
+                const signalDataForSharedStorage: DetectedSignal = {
+                    id: 'local_sos_signal', 
+                    advertisedName: advertisedName,
+                    name: victimName.replace(/_/g, ' '),
+                    lat: rescuerLat,
+                    lon: rescuerLon,
+                    rssi: -55, 
+                    timestamp: Date.now(),
+                    status: 'Active (Local)', 
+                };
+                localStorage.setItem(LOCAL_STORAGE_SHARED_SOS_SIGNAL_KEY, JSON.stringify(signalDataForSharedStorage));
+
+                const victimSOSState: PersistedSOSState = {
+                    isActive: true,
+                    location: { lat: rescuerLat, lon: rescuerLon },
+                    victimNameForSignal: victimName,
+                    advertisedName,
+                    customSosMessage: effectiveSosMessage, 
+                    activationTimestamp: Date.now(),
+                    activationSource: "central", 
+                };
+                localStorage.setItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY, JSON.stringify(victimSOSState));
+
+                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Rescuer's own device is within the newly created alert. Activating local SOS as ${advertisedName}. Alert Msg: "${effectiveSosMessage}"` }));
+                toast({
+                    title: "Local SOS Activated",
+                    description: `Your device is within the area alert. Message: "${effectiveSosMessage}"`,
+                    variant: "default" 
+                });
+                window.dispatchEvent(new CustomEvent('localSOSStateChangedByExternal'));
+            } else {
+                 window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Rescuer's device is within new alert zone, but SOS is already active.` }));
+            }
+        }
+    } catch (geoErr) {
+        console.warn("Could not get rescuer location for self-activation check:", geoErr);
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Could not get current location to check if rescuer is in the new alert zone. Error: ${ (geoErr as Error).message }` }));
+    }
+
+    // Save the alert to the list for other users
     try {
       const currentAlerts = [...activeMassAlerts];
-      currentAlerts.unshift(newAlert);
+      currentAlerts.unshift(newAlert); // Add to the beginning
       localStorage.setItem(MASS_ALERT_DEFINITIONS_KEY, JSON.stringify(currentAlerts));
-      setActiveMassAlerts(currentAlerts.sort((a, b) => b.timestamp - a.timestamp));
+      setActiveMassAlerts(currentAlerts.sort((a, b) => b.timestamp - a.timestamp)); // Re-sort just in case
       toast({
         title: "Area Alert Created",
         description: `Alert active for ${data.adminRegionName ? data.adminRegionName + ' - ' : ''}LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m.`,
@@ -202,7 +282,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       form.reset({ adminRegionName: "", lat: undefined, lon: undefined, radius: 1000, message: ""});
       setRegionSearchTerm(""); 
       setRegionSuggestions([]); 
-      window.dispatchEvent(new CustomEvent('massAlertsUpdated'));
+      window.dispatchEvent(new CustomEvent('massAlertsUpdated')); // Notify other components like MapDisplayPanel
     } catch (e) {
       toast({ title: "Error Creating Alert", description: "Could not save the area alert. LocalStorage might be full.", variant: "destructive" });
       window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Error creating alert - LocalStorage issue.` }));
@@ -232,7 +312,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
             Area SOS Alert Manager
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Define geographical zones by manually entering GPS coordinates (Latitude, Longitude) and a radius. The map will adjust its view to the specified area and display a marker at the center point. Alerts are stored locally.
+            Define geographical zones. Alerts are stored locally and can trigger SOS for users (including this device) within the zone.
           </DialogDescription>
         </DialogHeader>
 
@@ -240,7 +320,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleCreateAlert)} className="space-y-3 border p-3 sm:p-4 rounded-md bg-card shadow">
               <h3 className="text-base font-medium text-foreground mb-2">Create New Area Alert</h3>
-
+              
               <FormField
                 control={form.control}
                 name="adminRegionName"
@@ -280,8 +360,9 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                                   key={suggestion.place_id}
                                   value={suggestion.display_name}
                                   onSelect={(currentValue) => {
-                                    form.setValue("adminRegionName", currentValue === regionSearchTerm ? regionSearchTerm : currentValue, { shouldValidate: true, shouldDirty: true });
-                                    setRegionSearchTerm(currentValue === regionSearchTerm ? regionSearchTerm : currentValue);
+                                    const valToSet = currentValue === regionSearchTerm.toLowerCase() ? regionSearchTerm : currentValue;
+                                    form.setValue("adminRegionName", valToSet , { shouldValidate: true, shouldDirty: true });
+                                    setRegionSearchTerm(valToSet);
                                     setRegionSuggestions([]);
                                     setRegionPopoverOpen(false);
                                     if (suggestion.lat && suggestion.lon && (!form.getValues('lat') || !form.getValues('lon'))) {
@@ -291,7 +372,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                                     }
                                   }}
                                 >
-                                  <Check className={cn("mr-2 h-4 w-4", field.value === suggestion.display_name || regionSearchTerm === suggestion.display_name ? "opacity-100" : "opacity-0")}/>
+                                  <Check className={cn("mr-2 h-4 w-4", (field.value === suggestion.display_name || regionSearchTerm === suggestion.display_name) ? "opacity-100" : "opacity-0")}/>
                                   {suggestion.display_name}
                                 </CommandItem>
                               ))
@@ -303,7 +384,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                       </PopoverContent>
                     </Popover>
                     <FormDescription className="text-xs text-muted-foreground mt-1">
-                      Enter any region (e.g., city, state, county) for informational context. Suggestions provided by OpenStreetMap.
+                     Enter any region (e.g., city, state, county) for informational context. Suggestions provided by OpenStreetMap.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -373,9 +454,12 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
              <p className="text-sm text-muted-foreground text-center py-4">No active area alerts.</p>
            )}
         </div>
+        <DialogFooter className="p-4 border-t bg-background sticky bottom-0 z-10">
+            <DialogClose asChild>
+                <Button type="button" variant="outline" size="sm">Close</Button>
+            </DialogClose>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-

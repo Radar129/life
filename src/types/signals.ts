@@ -51,4 +51,14 @@ export interface MassAlert {
   adminRegionName?: string; // Optional administrative region name
   timestamp: number; // Creation timestamp
 }
-    
+
+// Persisted state for the victim's SOS panel
+export interface PersistedSOSState {
+  isActive: boolean;
+  location: { lat: number; lon: number };
+  victimNameForSignal: string; 
+  advertisedName: string; 
+  customSosMessage: string; // This will store the message being broadcast (either user's custom or alert's message)
+  activationTimestamp: number;
+  activationSource: 'manual' | 'central' | null;
+}
