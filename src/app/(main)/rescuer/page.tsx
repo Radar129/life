@@ -6,7 +6,7 @@ import { SOSScannerPanel } from '@/components/rescuer/sos-scanner-panel';
 import { MapDisplayPanel } from '@/components/rescuer/map-display-panel';
 import { RescuerAdvicePanel } from '@/components/rescuer/rescuer-advice-panel';
 import { RescuerLogPanel } from '@/components/rescuer/rescuer-log-panel';
-import { MassAlertPanel } from '@/components/rescuer/mass-alert-panel'; // Import MassAlertPanel
+// MassAlertPanel import removed
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -81,7 +81,7 @@ export default function RescuerPage() {
           <MapDisplayPanel signals={detectedSignals} />
         </div>
         <div className="lg:sticky lg:top-[calc(4rem+1.5rem)] space-y-4 sm:space-y-6">
-          <MassAlertPanel /> {/* Add MassAlertPanel here */}
+          {/* MassAlertPanel removed from here */}
           <RescuerAdvicePanel />
         </div>
       </div>
