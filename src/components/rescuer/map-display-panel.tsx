@@ -164,7 +164,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
           Incident Map
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Live map of rescuer, victims, and active alert areas. Markers for rescuer/victims are blue. Alert areas are framed by the map's viewport.
+          Live map of rescuer, victims, and active alert areas. All markers are currently <strong>blue</strong> (desired: yellow for SOS signals, but not supported by the current simple map embed). Alert areas are framed by the map's viewport.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -245,4 +245,3 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
   );
 }
     
-
