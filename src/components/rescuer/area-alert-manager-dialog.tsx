@@ -25,7 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 
 const MASS_ALERT_DEFINITIONS_KEY = 'massAlertDefinitions';
-const DEFAULT_MAP_ZOOM_BOX_SIZE = 0.05; // Smaller zoom box for single point reference
+const DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES = 0.05; // Default zoom box size in degrees if no radius is given
 
 const massAlertSchema = z.object({
   lat: z.coerce.number().min(-90, "Invalid Latitude (must be between -90 and 90)").max(90, "Invalid Latitude (must be between -90 and 90)"),
@@ -58,6 +58,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
   const { isSubmitting } = form.formState; 
   const watchedLat = form.watch('lat');
   const watchedLon = form.watch('lon');
+  const watchedRadius = form.watch('radius');
 
   const loadActiveMassAlerts = () => {
     try {
@@ -83,18 +84,47 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
   }, [isOpen]); 
 
   useEffect(() => {
-    if (typeof watchedLat === 'number' && typeof watchedLon === 'number' && !isNaN(watchedLat) && !isNaN(watchedLon)) {
-      const bbox = [
-        watchedLon - DEFAULT_MAP_ZOOM_BOX_SIZE / 2,
-        watchedLat - DEFAULT_MAP_ZOOM_BOX_SIZE / 2,
-        watchedLon + DEFAULT_MAP_ZOOM_BOX_SIZE / 2,
-        watchedLat + DEFAULT_MAP_ZOOM_BOX_SIZE / 2,
-      ].join(',');
-      setMapUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${watchedLat},${watchedLon}`);
+    const lat = watchedLat;
+    const lon = watchedLon;
+    const radiusMeters = watchedRadius;
+
+    if (typeof lat === 'number' && typeof lon === 'number' && !isNaN(lat) && !isNaN(lon)) {
+      let bboxArray: [number, number, number, number];
+
+      if (typeof radiusMeters === 'number' && radiusMeters > 0 && !isNaN(radiusMeters)) {
+        const earthRadiusKm = 6371;
+        const latRadians = lat * (Math.PI / 180);
+        const radiusKm = radiusMeters / 1000;
+
+        // Approximate degree offsets for latitude and longitude
+        const latOffsetDegrees = (radiusKm / earthRadiusKm) * (180 / Math.PI);
+        const lonOffsetDegrees = (radiusKm / (earthRadiusKm * Math.cos(latRadians))) * (180 / Math.PI);
+        
+        // Padding factor to ensure the area is comfortably within view
+        const paddingFactor = 1.2; 
+
+        bboxArray = [
+          lon - lonOffsetDegrees * paddingFactor,
+          lat - latOffsetDegrees * paddingFactor,
+          lon + lonOffsetDegrees * paddingFactor,
+          lat + latOffsetDegrees * paddingFactor,
+        ];
+      } else {
+        // Default bounding box around the point if no valid radius
+        bboxArray = [
+          lon - DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
+          lat - DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
+          lon + DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
+          lat + DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
+        ];
+      }
+      
+      const bbox = bboxArray.map(coord => parseFloat(coord.toFixed(5))).join(','); // Limit precision for URL
+      setMapUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`);
     } else {
-      setMapUrl('https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik'); // Reset to default if coords are invalid/empty
+      setMapUrl('https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik'); // Reset to default world view
     }
-  }, [watchedLat, watchedLon]);
+  }, [watchedLat, watchedLon, watchedRadius]);
 
 
   const handleCreateAlert: SubmitHandler<MassAlertFormValues> = async (data) => {
@@ -148,7 +178,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
             Area SOS Alert Manager
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Define geographical zones by manually entering GPS coordinates (Latitude, Longitude) and a radius. The map will display the entered point. Alerts are stored locally.
+            Define geographical zones by manually entering GPS coordinates (Latitude, Longitude) and a radius. The map will adjust its view to the specified area and display a marker at the center point. Alerts are stored locally.
           </DialogDescription>
         </DialogHeader>
 
@@ -176,7 +206,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                 ></iframe>
               </div>
               <p className="text-xs text-muted-foreground flex items-center gap-1.5 -mt-2 mb-2">
-                <Info className="w-3.5 h-3.5"/> Map shows entered coordinates. Interactive map selection/radius display not supported.
+                <Info className="w-3.5 h-3.5"/> Map shows the entered center point and adjusts view to the approximate area. Interactive selection/radius drawing not supported.
               </p>
 
               <FormField control={form.control} name="radius" render={({ field }) => (<FormItem><FormLabel htmlFor="radius" className="text-xs flex items-center gap-1"><CircleDot className="w-3 h-3"/>Radius (meters) <span className="text-destructive">*</span></FormLabel><FormControl><Input id="radius" type="number" placeholder="e.g., 1000 (for 1km)" {...field} className="text-sm h-9" value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
@@ -227,4 +257,5 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
     
 
     
+
 
