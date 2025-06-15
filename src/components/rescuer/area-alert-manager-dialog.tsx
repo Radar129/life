@@ -55,7 +55,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       message: "",
     },
   });
-  const { isSubmitting } = form.formState; // Removed watch as it's not used directly in render logic after map preview addition
+  const { isSubmitting } = form.formState; 
   const watchedLat = form.watch('lat');
   const watchedLon = form.watch('lon');
 
@@ -117,7 +117,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
         description: `Alert active for LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m.`,
       });
       window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Created alert ID ${newAlert.id} for LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m. Message: "${data.message || 'None'}"` }));
-      form.reset({ lat: undefined, lon: undefined, radius: 1000, message: ""}); // Ensure lat/lon are reset to undefined
+      form.reset({ lat: undefined, lon: undefined, radius: 1000, message: ""}); 
       window.dispatchEvent(new CustomEvent('massAlertsUpdated'));
     } catch (e) {
       toast({ title: "Error Creating Alert", description: "Could not save the area alert. LocalStorage might be full.", variant: "destructive" });
@@ -148,7 +148,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
             Area SOS Alert Manager
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Define geographical zones to automatically activate SOS for users within them. Alerts are stored locally.
+            Define geographical zones by manually entering GPS coordinates (Latitude, Longitude) and a radius. The map will display the entered point. Alerts are stored locally.
           </DialogDescription>
         </DialogHeader>
 
@@ -176,7 +176,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                 ></iframe>
               </div>
               <p className="text-xs text-muted-foreground flex items-center gap-1.5 -mt-2 mb-2">
-                <Info className="w-3.5 h-3.5"/> Map shows entered coordinates. Interactive selection/radius display not supported.
+                <Info className="w-3.5 h-3.5"/> Map shows entered coordinates. Interactive map selection/radius display not supported.
               </p>
 
               <FormField control={form.control} name="radius" render={({ field }) => (<FormItem><FormLabel htmlFor="radius" className="text-xs flex items-center gap-1"><CircleDot className="w-3 h-3"/>Radius (meters) <span className="text-destructive">*</span></FormLabel><FormControl><Input id="radius" type="number" placeholder="e.g., 1000 (for 1km)" {...field} className="text-sm h-9" value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
@@ -227,3 +227,4 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
     
 
     
+
