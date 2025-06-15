@@ -38,31 +38,29 @@ export function BluetoothSOSPanel() {
   const [currentCustomMessage, setCurrentCustomMessage] = useState<string>("Emergency! I need help. My location is being broadcast.");
   const [activationSource, setActivationSource] = useState<ActivationSource>(null);
   const [activeCentralAlertMessage, setActiveCentralAlertMessage] = useState<string | null>(null);
+  const [activeCentralAlertId, setActiveCentralAlertId] = useState<string | undefined>(undefined);
+
 
   const statusRef = useRef(status);
-  useEffect(() => {
-    statusRef.current = status;
-  }, [status]);
+  useEffect(() => { statusRef.current = status; }, [status]);
 
   const locationRef = useRef(location);
-    useEffect(() => {
-    locationRef.current = location;
-  }, [location]);
+  useEffect(() => { locationRef.current = location; }, [location]);
 
   const currentVictimNameForSignalRef = useRef(currentVictimNameForSignal);
-  useEffect(() => {
-    currentVictimNameForSignalRef.current = currentVictimNameForSignal;
-  }, [currentVictimNameForSignal]);
+  useEffect(() => { currentVictimNameForSignalRef.current = currentVictimNameForSignal; }, [currentVictimNameForSignal]);
 
   const currentCustomMessageRef = useRef(currentCustomMessage);
-  useEffect(() => {
-    currentCustomMessageRef.current = currentCustomMessage;
-  }, [currentCustomMessage]);
+  useEffect(() => { currentCustomMessageRef.current = currentCustomMessage; }, [currentCustomMessage]);
 
   const activationSourceRef = useRef(activationSource);
-  useEffect(() => {
-    activationSourceRef.current = activationSource;
-  }, [activationSource]);
+  useEffect(() => { activationSourceRef.current = activationSource; }, [activationSource]);
+
+  const activeCentralAlertMessageRef = useRef(activeCentralAlertMessage);
+  useEffect(() => { activeCentralAlertMessageRef.current = activeCentralAlertMessage; }, [activeCentralAlertMessage]);
+
+  const activeCentralAlertIdRef = useRef(activeCentralAlertId);
+  useEffect(() => { activeCentralAlertIdRef.current = activeCentralAlertId; }, [activeCentralAlertId]);
 
 
   const getDeviceLocation = useCallback((): Promise<{ lat: number; lon: number }> => {
@@ -120,7 +118,6 @@ export function BluetoothSOSPanel() {
       setCountdown(prev => {
         if (prev <= 1) {
           getDeviceLocation().then(newLoc => {
-            setLocation(newLoc);
             const updatedSosState: PersistedSOSState = {
                 isActive: true, location: newLoc, victimNameForSignal: victimNameToUse,
                 advertisedName: `SOS_${victimNameToUse}_${newLoc.lat}_${newLoc.lon}`,
@@ -128,6 +125,10 @@ export function BluetoothSOSPanel() {
                 triggeringCentralAlertId: sourceToUse === 'central' ? triggeringAlertIdFromState : undefined,
             };
             broadcastSignal(updatedSosState);
+             // Update location state for UI if it changed
+            if (locationRef.current?.lat.toFixed(4) !== newLoc.lat.toFixed(4) || locationRef.current?.lon.toFixed(4) !== newLoc.lon.toFixed(4)) {
+                setLocation(newLoc);
+            }
           }).catch(err => {
             console.error("Error getting location for rebroadcast, using last known:", err);
             const lastKnownLocation = locationRef.current || currentLocationToUse;
@@ -146,30 +147,6 @@ export function BluetoothSOSPanel() {
     }, 1000);
   }, [broadcastSignal, getDeviceLocation]);
 
-  const deactivateSOS = useCallback(() => {
-    const wasActive = statusRef.current === "active";
-
-    setStatus("inactive");
-    setError(null);
-    setLocation(null);
-    setIsFlashlightActive(false);
-    setIsBuzzerActive(false);
-    if (rebroadcastIntervalIdRef.current) clearInterval(rebroadcastIntervalIdRef.current);
-    rebroadcastIntervalIdRef.current = null;
-    setCountdown(0);
-    setActivationSource(null);
-    setActiveCentralAlertMessage(null);
-
-    localStorage.removeItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_SHARED_SOS_SIGNAL_KEY);
-
-    if (wasActive) {
-      setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: "SOS Deactivated. Alerts stopped. Local signal cleared." })), 0);
-      toast({ title: "SOS Deactivated", description: "SOS broadcast and alerts have been stopped." });
-    }
-  }, [toast]);
-
-
   const activateSOS = useCallback(async (
     initialSourceParam: ActivationSource = "manual",
     initialCentralAlertMsgParam?: string,
@@ -177,50 +154,41 @@ export function BluetoothSOSPanel() {
     triggeringAlertId?: string
   ) => {
 
-    const panelWasActuallyInactive = statusRef.current === 'inactive';
-    let detailsChangedDuringSync = false;
-
     if (resumePersistedState) {
-        const persistedStateInStorage = JSON.parse(localStorage.getItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY) || '{}') as PersistedSOSState;
-        const currentTriggeringIdFromStorage = persistedStateInStorage?.triggeringCentralAlertId;
+      const isAlreadyInTargetState =
+        statusRef.current === 'active' &&
+        locationRef.current?.lat.toFixed(4) === resumePersistedState.location.lat.toFixed(4) &&
+        locationRef.current?.lon.toFixed(4) === resumePersistedState.location.lon.toFixed(4) &&
+        currentVictimNameForSignalRef.current === resumePersistedState.victimNameForSignal &&
+        currentCustomMessageRef.current === resumePersistedState.customSosMessage &&
+        activationSourceRef.current === resumePersistedState.activationSource &&
+        ((activationSourceRef.current === 'central' && activeCentralAlertIdRef.current === resumePersistedState.triggeringCentralAlertId) || activationSourceRef.current !== 'central');
 
-
-        const alreadyInTargetState =
-            statusRef.current === 'active' &&
-            locationRef.current?.lat.toFixed(4) === resumePersistedState.location.lat.toFixed(4) &&
-            locationRef.current?.lon.toFixed(4) === resumePersistedState.location.lon.toFixed(4) &&
-            currentVictimNameForSignalRef.current === resumePersistedState.victimNameForSignal &&
-            currentCustomMessageRef.current === resumePersistedState.customSosMessage &&
-            activationSourceRef.current === resumePersistedState.activationSource &&
-            (resumePersistedState.activationSource !== 'central' || currentTriggeringIdFromStorage === resumePersistedState.triggeringCentralAlertId);
-
-        if (alreadyInTargetState) {
-            if (rebroadcastIntervalIdRef.current === null && locationRef.current && currentVictimNameForSignalRef.current && currentCustomMessageRef.current && activationSourceRef.current) {
-                 startRebroadcastCountdown(locationRef.current, currentVictimNameForSignalRef.current, currentCustomMessageRef.current, activationSourceRef.current, resumePersistedState.triggeringCentralAlertId);
-            }
-            return;
+      if (isAlreadyInTargetState) {
+        if (rebroadcastIntervalIdRef.current === null && statusRef.current === 'active' && locationRef.current && currentVictimNameForSignalRef.current && currentCustomMessageRef.current && activationSourceRef.current) {
+          startRebroadcastCountdown(locationRef.current, currentVictimNameForSignalRef.current, currentCustomMessageRef.current, activationSourceRef.current, activeCentralAlertIdRef.current);
         }
-        if (statusRef.current === 'active' || statusRef.current === 'activating') { // Panel was already active or activating
-             detailsChangedDuringSync = currentVictimNameForSignalRef.current !== resumePersistedState.victimNameForSignal ||
-                                       currentCustomMessageRef.current !== resumePersistedState.customSosMessage ||
-                                       activationSourceRef.current !== resumePersistedState.activationSource ||
-                                       (resumePersistedState.activationSource === 'central' && currentTriggeringIdFromStorage !== resumePersistedState.triggeringCentralAlertId);
-        }
-    } else { // This is for non-resume (manual/URL activation)
+        return;
+      }
+    } else {
       if (statusRef.current === "active" || statusRef.current === "activating") {
         return;
       }
     }
 
-    setStatus("activating"); // Visual feedback that something is happening
+    const panelWasPreviouslyInactive = statusRef.current === 'inactive';
+    
+    setStatus("activating");
     setError(null);
-    if (!resumePersistedState) { // Only reset these for fresh activations
+    if (!resumePersistedState) {
         setIsFlashlightActive(false);
         setIsBuzzerActive(false);
     }
 
     const effectiveSource = resumePersistedState ? resumePersistedState.activationSource : initialSourceParam;
-    const effectiveTriggeringAlertId = resumePersistedState ? resumePersistedState.triggeringCentralAlertId : (effectiveSource === 'central' ? triggeringAlertId : undefined);
+    const effectiveTriggeringAlertId = resumePersistedState
+        ? resumePersistedState.triggeringCentralAlertId
+        : (effectiveSource === 'central' ? triggeringAlertId : undefined);
 
     let locToUse: { lat: number; lon: number };
     let victimNameToUse: string;
@@ -239,8 +207,10 @@ export function BluetoothSOSPanel() {
         sosMessageToUse = resumePersistedState.customSosMessage;
         activationTimestampToUse = resumePersistedState.activationTimestamp || Date.now();
 
-        setLocation(locToUse);
-        if (panelWasActuallyInactive || detailsChangedDuringSync) {
+        if (locationRef.current?.lat.toFixed(4) !== locToUse.lat.toFixed(4) || locationRef.current?.lon.toFixed(4) !== locToUse.lon.toFixed(4)) {
+            setLocation(locToUse);
+        }
+        if (panelWasPreviouslyInactive || (isFlashlightActive === false || isBuzzerActive === false)) { // Turn on if resuming and they were off
             setIsFlashlightActive(true);
             setIsBuzzerActive(true);
         }
@@ -269,10 +239,17 @@ export function BluetoothSOSPanel() {
         setIsBuzzerActive(true);
       }
 
-      setActivationSource(effectiveSource);
-      setCurrentVictimNameForSignal(victimNameToUse);
-      setCurrentCustomMessage(sosMessageToUse);
-      setActiveCentralAlertMessage(effectiveSource === 'central' ? sosMessageToUse : null);
+      if (activationSourceRef.current !== effectiveSource) setActivationSource(effectiveSource);
+      if (currentVictimNameForSignalRef.current !== victimNameToUse) setCurrentVictimNameForSignal(victimNameToUse);
+      if (currentCustomMessageRef.current !== sosMessageToUse) setCurrentCustomMessage(sosMessageToUse);
+      
+      if (effectiveSource === 'central') {
+        if(activeCentralAlertMessageRef.current !== sosMessageToUse) setActiveCentralAlertMessage(sosMessageToUse);
+        if(activeCentralAlertIdRef.current !== effectiveTriggeringAlertId) setActiveCentralAlertId(effectiveTriggeringAlertId);
+      } else {
+        if(activeCentralAlertMessageRef.current !== null) setActiveCentralAlertMessage(null);
+        if(activeCentralAlertIdRef.current !== undefined) setActiveCentralAlertId(undefined);
+      }
 
       const currentPersistedState: PersistedSOSState = {
         isActive: true, location: locToUse, victimNameForSignal: victimNameToUse,
@@ -282,26 +259,18 @@ export function BluetoothSOSPanel() {
       };
 
       broadcastSignal(currentPersistedState);
-
-      await new Promise(resolve => setTimeout(resolve, 100)); // Short delay for state to settle
-
       setStatus("active");
       startRebroadcastCountdown(locToUse, victimNameToUse, sosMessageToUse, effectiveSource, effectiveTriggeringAlertId);
 
-      // Strict Toasting Logic: Only toast if panel was previously inactive
-      if (panelWasActuallyInactive) {
-        const deviceNameForLog = `SOS_${victimNameToUse}_${locToUse.lat}_${locToUse.lon}`;
+      if (panelWasPreviouslyInactive) {
+        const deviceNameForLog = currentPersistedState.advertisedName;
         const logMsg = `SOS Activated (${effectiveSource}). Broadcasting as ${deviceNameForLog}. Alerts enabled. Msg: "${sosMessageToUse}"`;
         setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: logMsg })), 0);
         toast({
             title: effectiveSource === 'central' ? "Centrally Activated SOS" : "SOS Broadcasting",
-            description: `Signal sent as: ${currentPersistedState.advertisedName}. Rebroadcasting. Msg: "${sosMessageToUse}"`,
+            description: `Signal sent as: ${deviceNameForLog}. Rebroadcasting. Msg: "${sosMessageToUse}"`,
         });
-      } else if (detailsChangedDuringSync) { // Log if details changed while active, but no new toast
-        const logMsg = `SOS Synced & Updated Externally. Source: ${effectiveSource}. Msg: "${sosMessageToUse}"`;
-        setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: logMsg })), 0);
       }
-
 
     } catch (err: any) {
       setStatus("error");
@@ -309,12 +278,40 @@ export function BluetoothSOSPanel() {
       setError(errorMsg);
       setActivationSource(null);
       setActiveCentralAlertMessage(null);
-      setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activation Failed (${effectiveSource}): ${errorMsg}` })), 0);
-      toast({ title: "SOS Activation Failed", description: errorMsg, variant: "destructive" });
+      setActiveCentralAlertId(undefined);
+      setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activation Failed (${effectiveSource || 'unknown source'}): ${errorMsg}` })), 0);
+      if (panelWasPreviouslyInactive) { // Only toast activation errors if we were trying to activate from inactive
+          toast({ title: "SOS Activation Failed", description: errorMsg, variant: "destructive" });
+      }
       localStorage.removeItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
       localStorage.removeItem(LOCAL_STORAGE_SHARED_SOS_SIGNAL_KEY);
     }
-  }, [broadcastSignal, getDeviceLocation, startRebroadcastCountdown, toast]);
+  }, [broadcastSignal, getDeviceLocation, startRebroadcastCountdown, toast, isFlashlightActive, isBuzzerActive]); // Added isFlashlightActive, isBuzzerActive
+
+  const deactivateSOS = useCallback(() => {
+    const wasActive = statusRef.current === "active";
+
+    setStatus("inactive");
+    setError(null);
+    setLocation(null);
+    setIsFlashlightActive(false);
+    setIsBuzzerActive(false);
+    if (rebroadcastIntervalIdRef.current) clearInterval(rebroadcastIntervalIdRef.current);
+    rebroadcastIntervalIdRef.current = null;
+    setCountdown(0);
+    setActivationSource(null);
+    setActiveCentralAlertMessage(null);
+    setActiveCentralAlertId(undefined);
+
+
+    localStorage.removeItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_SHARED_SOS_SIGNAL_KEY);
+
+    if (wasActive) {
+      setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: "SOS Deactivated. Alerts stopped. Local signal cleared." })), 0);
+      toast({ title: "SOS Deactivated", description: "SOS broadcast and alerts have been stopped." });
+    }
+  }, [toast]);
 
   const checkMassAlerts = useCallback(async () => {
     try {
@@ -341,7 +338,6 @@ export function BluetoothSOSPanel() {
       if (persistedSOSStateRaw) {
         try { currentPersistedState = JSON.parse(persistedSOSStateRaw); } catch(e) { console.error("Error parsing persisted SOS for mass alert check:", e); }
       }
-
 
       if (deviceInAlertZone && triggeringAlert) {
         const alertIsNewOrDifferent = !currentPersistedState || !currentPersistedState.isActive ||
@@ -370,13 +366,11 @@ export function BluetoothSOSPanel() {
            };
            activateSOS("manual", undefined, manualState);
            setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: "Exited mass alert zone. SOS remains active (switched to manual)." })), 0);
-           // No toast here to reduce noise, user must manually deactivate if safe.
         }
       }
     } catch (err) {
       console.error("Error checking mass alerts:", err);
        if (statusRef.current === "inactive" && locationRef.current === null && (err as Error).message.includes("Geolocation")) {
-         // Suppress toast if geolocation fails when inactive and no location yet
        } else {
         setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Error during mass alert check: ${(err as Error).message}` })), 0);
        }
@@ -392,7 +386,7 @@ export function BluetoothSOSPanel() {
       try {
         const persistedState = JSON.parse(storedSOSStateRaw) as PersistedSOSState;
         if (persistedState.isActive && persistedState.location) {
-          activateSOS(persistedState.activationSource, persistedState.customSosMessage, persistedState, persistedState.triggeringCentralAlertId);
+          activateSOS(persistedState.activationSource || 'manual', persistedState.customSosMessage, persistedState, persistedState.triggeringCentralAlertId);
           resumedFromStorage = true;
         } else {
            localStorage.removeItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
@@ -409,7 +403,7 @@ export function BluetoothSOSPanel() {
       activateSOS("manual");
     }
 
-    checkMassAlerts();
+    checkMassAlerts(); // Initial check
     massAlertCheckIntervalIdRef.current = setInterval(checkMassAlerts, MASS_ALERT_CHECK_INTERVAL);
 
     const handleMassAlertsUpdatedEvent = () => { checkMassAlerts(); };
@@ -421,7 +415,7 @@ export function BluetoothSOSPanel() {
       window.removeEventListener('massAlertsUpdated', handleMassAlertsUpdatedEvent);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, activateSOS, checkMassAlerts]);
+  }, [searchParams]); // Removed activateSOS, checkMassAlerts from here as they are stable callbacks
 
 
   useEffect(() => {
@@ -432,15 +426,18 @@ export function BluetoothSOSPanel() {
       if (storedSOSStateRaw) {
         try {
           const persistedState = JSON.parse(storedSOSStateRaw) as PersistedSOSState;
-          if (persistedState.isActive) {
-            activateSOS(persistedState.activationSource, persistedState.customSosMessage, persistedState, persistedState.triggeringCentralAlertId);
+          if (persistedState.isActive && persistedState.location) {
+             // Call activateSOS to sync, it has guards to prevent loops if already in sync
+            activateSOS(persistedState.activationSource || 'manual', persistedState.customSosMessage, persistedState, persistedState.triggeringCentralAlertId);
           } else if (currentPanelStatus === "active" && !persistedState.isActive) {
             deactivateSOS();
           }
         } catch (e) {
           console.error("Error processing external SOS change:", e);
           setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: "SOS Sync Error processing external change." })), 0);
-          toast({ title: "SOS Sync Error", description: "Could not process external SOS state change.", variant: "destructive" });
+          if (currentPanelStatus === "inactive") { // Only toast if we weren't already aware or trying to fix
+            toast({ title: "SOS Sync Error", description: "Could not process external SOS state change.", variant: "destructive" });
+          }
         }
       } else if (currentPanelStatus === "active") {
          deactivateSOS();
@@ -452,7 +449,7 @@ export function BluetoothSOSPanel() {
     return () => {
       window.removeEventListener('localSOSStateChangedByExternal', handleExternalSOSChange);
     };
-  }, [activateSOS, deactivateSOS, toast]); // Dependencies are stable callbacks
+  }, [activateSOS, deactivateSOS, toast]);
 
 
   const getStatusContent = () => {
@@ -461,7 +458,7 @@ export function BluetoothSOSPanel() {
     let colorClass = "text-muted-foreground";
     let subTextToDisplay: string | null = null;
 
-    switch (status) {
+    switch (statusRef.current) { // Use ref for reading current status
       case "inactive":
         baseText = "SOS is OFF.";
         break;
@@ -469,7 +466,7 @@ export function BluetoothSOSPanel() {
         iconToShow = <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-primary animate-spin" />;
         baseText = activationSourceRef.current === 'central' ? "Centrally Activating SOS..." : "Activating SOS...";
         colorClass = "text-primary";
-        if (activeCentralAlertMessage) subTextToDisplay = activeCentralAlertMessage;
+        if (activeCentralAlertMessageRef.current) subTextToDisplay = activeCentralAlertMessageRef.current;
         break;
       case "active":
         iconToShow = <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />;
@@ -481,15 +478,15 @@ export function BluetoothSOSPanel() {
         } else {
           baseText = `SOS Active! ${sourceText} Broadcasting... Initializing location...`;
         }
-        if (activationSourceRef.current === 'central' && activeCentralAlertMessage) {
-            subTextToDisplay = activeCentralAlertMessage;
+        if (activationSourceRef.current === 'central' && activeCentralAlertMessageRef.current) {
+            subTextToDisplay = activeCentralAlertMessageRef.current;
         } else if (activationSourceRef.current === 'manual' && currentCustomMessageRef.current && currentCustomMessageRef.current !== "Emergency! I need help. My location is being broadcast.") {
             subTextToDisplay = `Custom Message: "${currentCustomMessageRef.current}"`;
         }
         break;
       case "error":
         iconToShow = <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />;
-        baseText = `Error: ${error}`;
+        baseText = `Error: ${error}`; // error is a state variable, directly accessible
         colorClass = "text-destructive";
         break;
       case "unsupported":
@@ -525,7 +522,7 @@ export function BluetoothSOSPanel() {
             </p>
         )}
 
-        {status === "active" && (
+        {status === "active" && ( // Read from state for UI rendering
           <div className="space-y-1 pt-1">
             <div className="flex items-center justify-center gap-1.5 text-xs text-green-500">
               <Zap className="w-3 h-3" /> <span>Flashlight Blinking</span>
@@ -542,19 +539,19 @@ export function BluetoothSOSPanel() {
           </div>
         )}
 
-         {status === "error" && error?.includes("Geolocation") && (
+         {status === "error" && error?.includes("Geolocation") && ( // Read from state
           <p className="text-xs text-destructive pt-2">
             Please enable location services in your browser and system settings and try again.
           </p>
         )}
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 p-4 border-t">
-        {status !== "active" && status !== "activating" && (
+        {status !== "active" && status !== "activating" && ( // Read from state
           <Button onClick={() => activateSOS("manual")} size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/80 text-accent-foreground text-sm sm:text-base py-3 h-14">
             <AlertTriangle className="mr-2 h-5 w-5" /> ACTIVATE SOS MANUALLY
           </Button>
         )}
-        {(status === "active" || status === "activating") && (
+        {(status === "active" || status === "activating") && ( // Read from state
           <Button
             onClick={deactivateSOS}
             variant="outline"
