@@ -51,7 +51,7 @@ export function ConnectivityStatusBox() {
             lastLocationUpdate: new Date(),
           }));
           if (!initialGeolocationLogDispatched.current) {
-            window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Connectivity: Location services active. Coordinates: LAT ${newCoords.lat}, LON ${newCoords.lon}.`}));
+            setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Connectivity: Location services active. Coordinates: LAT ${newCoords.lat}, LON ${newCoords.lon}.`})), 0);
             initialGeolocationLogDispatched.current = true;
           }
         },
@@ -61,7 +61,7 @@ export function ConnectivityStatusBox() {
           setError(errorMsg);
           setStatus(prev => ({ ...prev, locationServicesOn: false, gpsCoords: undefined, lastLocationUpdate: new Date() }));
           if (!initialGeolocationLogDispatched.current) {
-            window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Connectivity: Geolocation error - ${err.message}` }));
+            setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Connectivity: Geolocation error - ${err.message}` })), 0);
             initialGeolocationLogDispatched.current = true;
           }
         },
@@ -72,7 +72,7 @@ export function ConnectivityStatusBox() {
       const errorMsg = "Geolocation is not supported by this browser.";
       setError(errorMsg);
       if (!initialGeolocationLogDispatched.current) {
-        window.dispatchEvent(new CustomEvent('newAppLog', { detail: "Connectivity: Geolocation not supported by browser." }));
+        setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: "Connectivity: Geolocation not supported by browser." })), 0);
         initialGeolocationLogDispatched.current = true;
       }
     }
@@ -138,7 +138,7 @@ export function ConnectivityStatusBox() {
       navigator.clipboard.writeText(coordsText)
         .then(() => {
           toast({ title: "Coordinates Copied", description: coordsText });
-          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `GPS Coordinates copied: ${coordsText}` }));
+          setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `GPS Coordinates copied: ${coordsText}` })), 0);
         })
         .catch(err => {
           console.error("Failed to copy coordinates: ", err);

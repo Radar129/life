@@ -12,7 +12,7 @@ export default function RescuerLoginPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('isRescuerAuthenticated', 'true');
-      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Login: Access granted. Redirecting to dashboard." }));
+      setTimeout(() => window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Login: Access granted. Redirecting to dashboard." })), 0);
       router.replace('/rescuer');
     }
   }, [router]);
@@ -36,3 +36,4 @@ export default function RescuerLoginPage() {
     </div>
   );
 }
+

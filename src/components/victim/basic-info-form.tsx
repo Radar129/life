@@ -114,7 +114,7 @@ export function BasicInfoForm() {
       description: "Your information has been saved locally on this device.",
     });
     window.dispatchEvent(new CustomEvent('victimInfoUpdated'));
-    window.dispatchEvent(new CustomEvent('newAppLog', { detail: "User information saved locally." }));
+    setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: "User information saved locally." })), 0);
     router.push('/'); // Redirect to homepage
   };
 
@@ -235,7 +235,7 @@ export function BasicInfoForm() {
     navigator.clipboard.writeText(detailsString.trim())
       .then(() => {
         toast({ title: "Details Copied", description: "Your information has been copied to the clipboard." });
-        window.dispatchEvent(new CustomEvent('newAppLog', { detail: "User details copied to clipboard." }));
+        setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: "User details copied to clipboard." })), 0);
       })
       .catch(err => {
         console.error("Failed to copy details: ", err);
@@ -255,7 +255,7 @@ export function BasicInfoForm() {
       description: "All your personal and emergency details have been removed from this device.",
     });
     window.dispatchEvent(new CustomEvent('victimInfoUpdated'));
-    window.dispatchEvent(new CustomEvent('newAppLog', { detail: "User information cleared from device." }));
+    setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: "User information cleared from device." })), 0);
   };
 
   const { isSubmitting, isValid, isDirty } = form.formState;

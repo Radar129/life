@@ -69,7 +69,7 @@ export function BluetoothSOSPanel() {
 
     if (!isResumingOrUpdating) {
       const logDetail = `SOS Signal Broadcast: Name ${advertisedName}. Message: ${sosCustomMessage} Location: LAT ${sosLocation.lat}, LON ${sosLocation.lon}. Name: ${victimNameDisplay}. Source: ${sosActivationSource || 'manual'}.`;
-      window.dispatchEvent(new CustomEvent('newAppLog', { detail: logDetail }));
+      setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: logDetail })), 0);
       toast({
         title: sosActivationSource === 'central' ? "Centrally Activated SOS" : "SOS Broadcasting",
         description: `Signal sent as: ${advertisedName}. Rebroadcasting. Msg: ${sosCustomMessage}`,
@@ -107,7 +107,8 @@ export function BluetoothSOSPanel() {
             const updatedSosState: PersistedSOSState = {
                 isActive: true, location: newLoc, victimNameForSignal: victimNameToUse, 
                 advertisedName: `SOS_${victimNameToUse}_${newLoc.lat}_${newLoc.lon}`, 
-                customSosMessage: customMessageToUse, activationTimestamp: Date.now(), activationSource: sourceToUse
+                customSosMessage: customMessageToUse, activationTimestamp: Date.now(), activationSource: sourceToUse,
+                triggeringCentralAlertId: sourceToUse === 'central' ? (JSON.parse(localStorage.getItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY) || '{}') as PersistedSOSState).triggeringCentralAlertId : undefined,
             };
             broadcastSignal(updatedSosState, true); 
           }).catch(err => {
@@ -116,7 +117,8 @@ export function BluetoothSOSPanel() {
             const updatedSosState: PersistedSOSState = {
                 isActive: true, location: lastKnownLocation, victimNameForSignal: victimNameToUse, 
                 advertisedName: `SOS_${victimNameToUse}_${lastKnownLocation.lat}_${lastKnownLocation.lon}`, 
-                customSosMessage: customMessageToUse, activationTimestamp: Date.now(), activationSource: sourceToUse
+                customSosMessage: customMessageToUse, activationTimestamp: Date.now(), activationSource: sourceToUse,
+                triggeringCentralAlertId: sourceToUse === 'central' ? (JSON.parse(localStorage.getItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY) || '{}') as PersistedSOSState).triggeringCentralAlertId : undefined,
             };
             broadcastSignal(updatedSosState, true); 
           });
@@ -127,45 +129,60 @@ export function BluetoothSOSPanel() {
     }, 1000);
   }, [broadcastSignal, getDeviceLocation, location]);
 
+  const deactivateSOS = useCallback(() => {
+    setStatus("inactive");
+    setError(null);
+    setLocation(null);
+    setIsFlashlightActive(false);
+    setIsBuzzerActive(false);
+    if (rebroadcastIntervalIdRef.current) clearInterval(rebroadcastIntervalIdRef.current);
+    rebroadcastIntervalIdRef.current = null;
+    setCountdown(0);
+    setActivationSource(null); 
+    setActiveCentralAlertMessage(null);
+    
+    localStorage.removeItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY); 
+    localStorage.removeItem(LOCAL_STORAGE_SHARED_SOS_SIGNAL_KEY); 
+
+    setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: "SOS Deactivated. Alerts stopped. Local signal cleared." })), 0);
+    toast({ title: "SOS Deactivated", description: "SOS broadcast and alerts have been stopped." });
+  }, [toast]);
+
 
   const activateSOS = useCallback(async (
     initialSourceParam: ActivationSource = "manual", 
     initialCentralAlertMsgParam?: string,
-    resumePersistedState?: PersistedSOSState
+    resumePersistedState?: PersistedSOSState,
+    triggeringAlertId?: string
   ) => {
     if ((status === "active" || status === "activating") && !resumePersistedState) {
-        // If already active and this is not a sync/resume call, do nothing.
-        // If it IS a sync/resume, we might need to update message/source, so proceed.
         if (resumePersistedState && 
             (activationSource !== resumePersistedState.activationSource || currentCustomMessage !== resumePersistedState.customSosMessage)) {
-            // Proceed to update if source or message differs
         } else if (resumePersistedState) {
-             // If resuming but no change in critical data, ensure countdown is running and exit.
              if(location && currentVictimNameForSignal && currentCustomMessage && activationSource){
                  startRebroadcastCountdown(location, currentVictimNameForSignal, currentCustomMessage, activationSource);
              }
              return; 
         } else {
-            return; // Standard re-activation attempt, already active.
+            return; 
         }
     }
 
     setStatus("activating");
     setError(null);
-    // Only reset these if not resuming, or if resume state indicates they should be off (which it won't)
     if (!resumePersistedState) {
         setIsFlashlightActive(false);
         setIsBuzzerActive(false);
     }
 
-
     const effectiveSource = resumePersistedState ? resumePersistedState.activationSource : initialSourceParam;
     
-
     let locToUse: { lat: number; lon: number };
     let victimNameToUse: string;
     let sosMessageToUse: string;
     let activationTimestampToUse: number;
+    let finalTriggeringAlertId = resumePersistedState?.triggeringCentralAlertId || (effectiveSource === 'central' ? triggeringAlertId : undefined);
+
 
     if (rebroadcastIntervalIdRef.current) {
         clearInterval(rebroadcastIntervalIdRef.current);
@@ -179,8 +196,8 @@ export function BluetoothSOSPanel() {
         sosMessageToUse = resumePersistedState.customSosMessage;
         activationTimestampToUse = resumePersistedState.activationTimestamp || Date.now();
         
-        setLocation(locToUse); // Update panel state
-        setIsFlashlightActive(true); // Assume these should be on if resuming active state
+        setLocation(locToUse); 
+        setIsFlashlightActive(true); 
         setIsBuzzerActive(true);
 
       } else {
@@ -208,7 +225,6 @@ export function BluetoothSOSPanel() {
         setIsBuzzerActive(true); 
       }
       
-      // Update all relevant panel states
       setActivationSource(effectiveSource);
       setCurrentVictimNameForSignal(victimNameToUse);
       setCurrentCustomMessage(sosMessageToUse);
@@ -218,27 +234,27 @@ export function BluetoothSOSPanel() {
         isActive: true, location: locToUse, victimNameForSignal: victimNameToUse, 
         advertisedName: `SOS_${victimNameToUse}_${locToUse.lat}_${locToUse.lon}`, 
         customSosMessage: sosMessageToUse, activationTimestamp: activationTimestampToUse, activationSource: effectiveSource,
+        triggeringCentralAlertId: finalTriggeringAlertId,
       };
       
       broadcastSignal(currentPersistedState, !!resumePersistedState); 
 
-      await new Promise(resolve => setTimeout(resolve, 100)); // Shorter buffer
+      await new Promise(resolve => setTimeout(resolve, 100)); 
 
       setStatus("active");
       startRebroadcastCountdown(locToUse, victimNameToUse, sosMessageToUse, effectiveSource);
 
       if (!resumePersistedState) {
         const deviceNameForLog = `SOS_${victimNameToUse}_${locToUse.lat}_${locToUse.lon}`;
-        window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activated (${effectiveSource}). Broadcasting as ${deviceNameForLog}. Alerts enabled. Msg: "${sosMessageToUse}"` }));
+        setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activated (${effectiveSource}). Broadcasting as ${deviceNameForLog}. Alerts enabled. Msg: "${sosMessageToUse}"` })), 0);
       } else {
-        // If resuming, a different toast/log might be appropriate to indicate sync
-        const isUpdate = status === "active"; // If panel was already active, it's an update
+        const isUpdate = status === "active"; 
         if (isUpdate) {
             toast({ title: "SOS Synced & Updated", description: `Source: ${effectiveSource}. Msg: "${sosMessageToUse}"` });
-            window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Synced & Updated Externally. Source: ${effectiveSource}. Msg: "${sosMessageToUse}"` }));
+            setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Synced & Updated Externally. Source: ${effectiveSource}. Msg: "${sosMessageToUse}"` })), 0);
         } else {
             toast({ title: "SOS Resumed/Activated", description: `Source: ${effectiveSource}. Msg: "${sosMessageToUse}"` });
-            window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Resumed/Activated Externally. Source: ${effectiveSource}. Msg: "${sosMessageToUse}"` }));
+            setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Resumed/Activated Externally. Source: ${effectiveSource}. Msg: "${sosMessageToUse}"` })), 0);
         }
       }
 
@@ -248,32 +264,13 @@ export function BluetoothSOSPanel() {
       setError(errorMsg);
       setActivationSource(null); 
       setActiveCentralAlertMessage(null);
-      window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activation Failed (${effectiveSource}): ${errorMsg}` }));
+      setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activation Failed (${effectiveSource}): ${errorMsg}` })), 0);
       toast({ title: "SOS Activation Failed", description: errorMsg, variant: "destructive" });
       localStorage.removeItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
       localStorage.removeItem(LOCAL_STORAGE_SHARED_SOS_SIGNAL_KEY);
     }
-  }, [status, getDeviceLocation, broadcastSignal, startRebroadcastCountdown, toast, location, activationSource, currentCustomMessage, currentVictimNameForSignal]);
+  }, [status, getDeviceLocation, broadcastSignal, startRebroadcastCountdown, toast, location, activationSource, currentCustomMessage, currentVictimNameForSignal, deactivateSOS]);
   
-  const deactivateSOS = useCallback(() => {
-    setStatus("inactive");
-    setError(null);
-    setLocation(null);
-    setIsFlashlightActive(false);
-    setIsBuzzerActive(false);
-    if (rebroadcastIntervalIdRef.current) clearInterval(rebroadcastIntervalIdRef.current);
-    rebroadcastIntervalIdRef.current = null;
-    setCountdown(0);
-    setActivationSource(null); 
-    setActiveCentralAlertMessage(null);
-    
-    localStorage.removeItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY); 
-    localStorage.removeItem(LOCAL_STORAGE_SHARED_SOS_SIGNAL_KEY); 
-
-    window.dispatchEvent(new CustomEvent('newAppLog', { detail: "SOS Deactivated. Alerts stopped. Local signal cleared." }));
-    toast({ title: "SOS Deactivated", description: "SOS broadcast and alerts have been stopped." });
-  }, [toast]);
-
   const checkMassAlerts = useCallback(async () => {
     try {
       const storedAlertsRaw = localStorage.getItem(MASS_ALERT_DEFINITIONS_KEY);
@@ -294,56 +291,55 @@ export function BluetoothSOSPanel() {
         }
       }
 
+      const persistedSOSStateRaw = localStorage.getItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
+      let currentPersistedState: PersistedSOSState | null = null;
+      if (persistedSOSStateRaw) {
+        try { currentPersistedState = JSON.parse(persistedSOSStateRaw); } catch(e) { console.error("Error parsing persisted SOS for mass alert check:", e); }
+      }
+
+
       if (deviceInAlertZone && triggeringAlert) {
-        if (status === "inactive" || status === "error") {
-          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Device in active mass alert zone. Forcing SOS activation. Alert Msg: ${triggeringAlert.message || 'Standard emergency.'}` }));
-          activateSOS("central", triggeringAlert.message || undefined);
-        } else if (status === "active" && activationSource !== "central") {
-           // Already active, but now also under a central alert. Update source and message.
+        if (status === "inactive" || status === "error" || (currentPersistedState && !currentPersistedState.isActive)) {
+          setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Device in active mass alert zone. Forcing SOS activation. Alert Msg: ${triggeringAlert.message || 'Standard emergency.'}` })), 0);
+          activateSOS("central", triggeringAlert.message || undefined, undefined, triggeringAlert.id);
+        } else if (status === "active" && activationSource !== "central" && (!currentPersistedState || currentPersistedState.activationSource !== 'central' || currentPersistedState.triggeringCentralAlertId !== triggeringAlert.id)) {
            const alertMessage = triggeringAlert.message || "Centrally activated by rescuer.";
-           const persistedStateRaw = localStorage.getItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
-           if (persistedStateRaw) {
-               const persistedState = JSON.parse(persistedStateRaw) as PersistedSOSState;
+           if (currentPersistedState) {
                const updatedState: PersistedSOSState = {
-                   ...persistedState,
+                   ...currentPersistedState,
                    activationSource: "central",
                    customSosMessage: alertMessage,
+                   triggeringCentralAlertId: triggeringAlert.id,
                };
-               // Call activateSOS to sync this updated state
-               activateSOS("central", alertMessage, updatedState);
+               activateSOS("central", alertMessage, updatedState, triggeringAlert.id);
            }
-           window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS (manual) now also under central alert. Source and message updated. Alert Msg: "${alertMessage}"` }));
+           setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS (manual) now also under central alert. Source and message updated. Alert ID: ${triggeringAlert.id}, Msg: "${alertMessage}"` })), 0);
         }
       } else { 
-        if (activationSource === 'central' && status === 'active') {
-           // Was centrally activated, but no longer in any alert zone. Switch to manual.
-           const persistedStateRaw = localStorage.getItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
-           if (persistedStateRaw) {
-               const persistedState = JSON.parse(persistedStateRaw) as PersistedSOSState;
-               let originalCustomMsg = "Emergency! I need help. My location is being broadcast.";
-               const basicInfoRaw = localStorage.getItem('victimBasicInfo');
-               if(basicInfoRaw) { try { originalCustomMsg = (JSON.parse(basicInfoRaw) as VictimBasicInfo).customSosMessage || originalCustomMsg; } catch(e){} }
-               
-               const updatedState: PersistedSOSState = {
-                   ...persistedState,
-                   activationSource: "manual",
-                   customSosMessage: originalCustomMsg,
-               };
-               activateSOS("manual", undefined, updatedState);
-           }
-           window.dispatchEvent(new CustomEvent('newAppLog', { detail: "Exited mass alert zone. SOS remains active (switched to manual)." }));
+        if (activationSource === 'central' && status === 'active' && currentPersistedState && currentPersistedState.activationSource === 'central') {
+           let originalCustomMsg = "Emergency! I need help. My location is being broadcast.";
+           const basicInfoRaw = localStorage.getItem('victimBasicInfo');
+           if(basicInfoRaw) { try { originalCustomMsg = (JSON.parse(basicInfoRaw) as VictimBasicInfo).customSOSMessage || originalCustomMsg; } catch(e){} }
+           
+           const updatedState: PersistedSOSState = {
+               ...currentPersistedState,
+               activationSource: "manual",
+               customSosMessage: originalCustomMsg,
+               triggeringCentralAlertId: undefined, // Clear triggering ID
+           };
+           activateSOS("manual", undefined, updatedState);
+           setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: "Exited mass alert zone. SOS remains active (switched to manual)." })), 0);
            toast({ title: "Exited Area Alert Zone", description: "SOS remains active (manual). Deactivate manually if safe.", variant:"default"});
         }
       }
     } catch (err) {
       console.error("Error checking mass alerts:", err);
        if (status === "inactive" && location === null && (err as Error).message.includes("Geolocation")) {
-        // This error is expected if location is not yet available during initial checkMassAlerts
        } else {
-        window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Error during mass alert check: ${(err as Error).message}` }));
+        setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `Error during mass alert check: ${(err as Error).message}` })), 0);
        }
     }
-  }, [status, activationSource, activateSOS, getDeviceLocation, toast, location]);
+  }, [status, activationSource, activateSOS, getDeviceLocation, toast, location, deactivateSOS]);
 
 
   useEffect(() => {
@@ -354,7 +350,7 @@ export function BluetoothSOSPanel() {
       try {
         const persistedState = JSON.parse(storedSOSStateRaw) as PersistedSOSState;
         if (persistedState.isActive && persistedState.location) {
-          activateSOS(persistedState.activationSource, persistedState.customSosMessage, persistedState);
+          activateSOS(persistedState.activationSource, persistedState.customSosMessage, persistedState, persistedState.triggeringCentralAlertId);
           resumedFromStorage = true;
         } else {
            localStorage.removeItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
@@ -382,7 +378,7 @@ export function BluetoothSOSPanel() {
       if (massAlertCheckIntervalIdRef.current) clearInterval(massAlertCheckIntervalIdRef.current);
       window.removeEventListener('massAlertsUpdated', handleMassAlertsUpdatedEvent);
     };
-  }, [searchParams, activateSOS, checkMassAlerts]); // Removed status from deps to avoid re-running this entire effect on status change
+  }, [searchParams, activateSOS, checkMassAlerts]);
 
 
   useEffect(() => {
@@ -392,12 +388,11 @@ export function BluetoothSOSPanel() {
         try {
           const persistedState = JSON.parse(storedSOSStateRaw) as PersistedSOSState;
           if (persistedState.isActive) {
-            // Call activateSOS to sync/resume. It has internal guards.
-            activateSOS(persistedState.activationSource, persistedState.customSosMessage, persistedState);
+            activateSOS(persistedState.activationSource, persistedState.customSosMessage, persistedState, persistedState.triggeringCentralAlertId);
           } else if (status === "active" && !persistedState.isActive) {
             deactivateSOS(); 
             toast({ title: "SOS Deactivated Externally", description: `SOS was stopped by an external action.` });
-            window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Deactivated Externally.` }));
+            setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Deactivated Externally.` })), 0);
           }
         } catch (e) { 
           console.error("Error processing external SOS change:", e);
@@ -406,7 +401,7 @@ export function BluetoothSOSPanel() {
       } else if (status === "active") {
          deactivateSOS();
          toast({ title: "SOS Cleared Externally", description: `SOS state was cleared externally.` });
-         window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Cleared Externally.` }));
+         setTimeout(() => window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Cleared Externally.` })), 0);
       }
     };
 
