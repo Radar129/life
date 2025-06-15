@@ -4,11 +4,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form } from "@/components/ui/form"; // Keep form import if other forms remain, but seems not used now
 import { Bluetooth, Search, Loader2, SignalHigh, SignalMedium, SignalLow, MapPin, AlertTriangle as AlertTriangleIcon, Info, UserCircle, Trash2, Navigation } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { DetectedSignal as BaseDetectedSignal, VictimBasicInfo } from '@/types/signals'; // MassAlert removed from here
+import type { DetectedSignal as BaseDetectedSignal, VictimBasicInfo } from '@/types/signals';
 import { VictimDetailsDialog } from './victim-details-dialog';
 import { cn } from "@/lib/utils";
 
@@ -19,7 +18,7 @@ interface DetectedSignal extends BaseDetectedSignal {
 type ScanStatus = "idle" | "scanning" | "error";
 const LOCAL_STORAGE_SOS_KEY = 'currentR.A.D.A.R.SOSSignal';
 const LOCAL_STORAGE_VICTIM_INFO_KEY = 'victimBasicInfo';
-// MASS_ALERT_DEFINITIONS_KEY is no longer directly used here for management
+
 
 const SCAN_INTERVAL_MS = 10000; // 10 seconds for automatic refresh
 
@@ -57,7 +56,6 @@ const getStatusColorClass = (status?: string): string => {
   }
 };
 
-// Mass Alert Form Schema and type removed from here
 
 export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScannerPanelProps) {
   const [scanButtonStatus, setScanButtonStatus] = useState<ScanStatus>("idle"); 
@@ -67,9 +65,6 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [rescuerLocation, setRescuerLocation] = useState<{ lat: number; lon: number } | null>(null);
   
-  // State and form for Mass Alerts removed from here
-  // const [activeMassAlerts, setActiveMassAlerts] = useState<MassAlert[]>([]); // No longer managed here
-  // MassAlertForm removed
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -91,8 +86,6 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
        console.warn("Geolocation is not supported by this browser for SOS Scanner.");
        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Geolocation not supported by browser." }));
     }
-
-    // Load active mass alerts logic removed
   }, []);
 
   const performScanLogic = useCallback((isManualScan: boolean) => {
@@ -152,7 +145,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
       if (isManualScan) setScanButtonStatus("idle");
     }, isManualScan ? 500 : 100); 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setDetectedSignals, toast]); // Removed onSignalsDetected as it's not used directly here for updating parent
+  }, [setDetectedSignals, toast]);
 
   useEffect(() => {
     performScanLogic(false); 
@@ -220,11 +213,6 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
     return "Far";
   };
 
-  // Mass Alert Logic Removed
-  // loadActiveMassAlerts removed
-  // onMassAlertSubmit removed
-  // handleStopMassAlert removed
-  // isMassAlertSubmitting removed
 
   return (
     <>
@@ -253,7 +241,7 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
             )}
 
             {detectedSignals.length > 0 ? (
-              <ul className="space-y-0.5 border rounded-md max-h-[calc(100vh-28rem)] sm:max-h-[calc(100vh-25rem)] overflow-y-auto"> {/* Adjusted max-height */}
+              <ul className="space-y-0.5 border rounded-md max-h-[calc(100vh-28rem)] sm:max-h-[calc(100vh-25rem)] overflow-y-auto">
                 {detectedSignals.map((signal) => (
                   <ListItemWrapper key={signal.id}>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2 sm:gap-3">
@@ -284,11 +272,10 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
               </ul>
             ) : ( scanButtonStatus === "idle" && !error && ( <div className="text-muted-foreground text-sm text-center py-4 flex flex-col items-center gap-2"><Info className="w-8 h-8 text-primary/70"/><p>No active local SOS signal detected.</p><p className="text-xs">Activate SOS in "User Mode" on this device for it to appear here.</p></div>))}
           </div>
-
-          {/* Area SOS Alert Manager section removed from here */}
         </CardContent>
       </Card>
       <VictimDetailsDialog victimInfo={selectedVictimDetails} isOpen={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen} />
     </>
   );
 }
+
