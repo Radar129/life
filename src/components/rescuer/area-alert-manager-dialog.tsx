@@ -27,9 +27,15 @@ import { cn } from "@/lib/utils";
 
 
 const MASS_ALERT_DEFINITIONS_KEY = 'massAlertDefinitions';
-const DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES = 0.05; 
+const DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES = 0.05;
 const EARTH_RADIUS_KM = 6371;
 
+interface NominatimSuggestion {
+  place_id: string;
+  display_name: string;
+  lat: string;
+  lon: string;
+}
 
 const massAlertSchema = z.object({
   lat: z.coerce.number().min(-90, "Invalid Latitude (must be between -90 and 90)").max(90, "Invalid Latitude (must be between -90 and 90)"),
@@ -46,26 +52,69 @@ interface AreaAlertManagerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const fetchNominatimSuggestions = async (query: string): Promise<NominatimSuggestion[]> => {
+  if (!query || query.trim().length < 2) {
+    return [];
+  }
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5`;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        // Nominatim requires a User-Agent. Replace with your app's details if possible.
+        'User-Agent': 'R.A.D.A.R-App/1.0 (user@example.com)',
+      },
+    });
+    if (!response.ok) {
+      console.error('Nominatim API error:', response.statusText);
+      return [];
+    }
+    const data = await response.json();
+    return data as NominatimSuggestion[];
+  } catch (error) {
+    console.error('Failed to fetch Nominatim suggestions:', error);
+    return [];
+  }
+};
+
+
 export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManagerDialogProps) {
   const { toast } = useToast();
   const [activeMassAlerts, setActiveMassAlerts] = useState<MassAlert[]>([]);
   const [mapUrl, setMapUrl] = useState<string>('https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik');
+  
+  const [regionSearchTerm, setRegionSearchTerm] = useState('');
+  const [regionSuggestions, setRegionSuggestions] = useState<NominatimSuggestion[]>([]);
   const [regionPopoverOpen, setRegionPopoverOpen] = useState(false);
+
 
   const form = useForm<MassAlertFormValues>({
     resolver: zodResolver(massAlertSchema),
     defaultValues: {
       lat: undefined,
       lon: undefined,
-      radius: 1000, 
+      radius: 1000,
       message: "",
       adminRegionName: "",
     },
   });
-  const { isSubmitting } = form.formState; 
+  const { isSubmitting } = form.formState;
   const watchedLat = form.watch('lat');
   const watchedLon = form.watch('lon');
   const watchedRadius = form.watch('radius');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (regionSearchTerm.length > 1) {
+        fetchNominatimSuggestions(regionSearchTerm).then(setRegionSuggestions);
+      } else {
+        setRegionSuggestions([]);
+      }
+    }, 500); // Debounce API calls by 500ms
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [regionSearchTerm]);
 
   const loadActiveMassAlerts = () => {
     try {
@@ -88,7 +137,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       loadActiveMassAlerts();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]); 
+  }, [isOpen]);
 
   useEffect(() => {
     const lat = watchedLat;
@@ -104,8 +153,8 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
         const latOffsetDegrees = (radiusKm / EARTH_RADIUS_KM) * (180 / Math.PI);
         const lonOffsetDegrees = (radiusKm / (EARTH_RADIUS_KM * Math.cos(latRadians))) * (180 / Math.PI);
-        
-        const paddingFactor = 1.2; 
+
+        const paddingFactor = 1.2;
 
         bboxArray = [
           lon - lonOffsetDegrees * paddingFactor,
@@ -121,7 +170,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
           lat + DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
         ];
       }
-      
+
       const bbox = bboxArray.map(coord => parseFloat(coord.toFixed(5))).join(',');
       setMapUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`);
     } else {
@@ -143,7 +192,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
     try {
       const currentAlerts = [...activeMassAlerts];
-      currentAlerts.unshift(newAlert); 
+      currentAlerts.unshift(newAlert);
       localStorage.setItem(MASS_ALERT_DEFINITIONS_KEY, JSON.stringify(currentAlerts));
       setActiveMassAlerts(currentAlerts.sort((a, b) => b.timestamp - a.timestamp));
       toast({
@@ -151,7 +200,9 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
         description: `Alert active for LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m. ${data.adminRegionName ? 'Region: ' + data.adminRegionName : ''}`,
       });
       window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Created alert ID ${newAlert.id} for LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m. ${data.adminRegionName ? 'Region: ' + data.adminRegionName : ''} Message: "${data.message || 'None'}"` }));
-      form.reset({ lat: undefined, lon: undefined, radius: 1000, message: "", adminRegionName: ""}); 
+      form.reset({ lat: undefined, lon: undefined, radius: 1000, message: "", adminRegionName: ""});
+      setRegionSearchTerm(""); // Clear search term for combobox
+      setRegionSuggestions([]); // Clear suggestions
       window.dispatchEvent(new CustomEvent('massAlertsUpdated'));
     } catch (e) {
       toast({ title: "Error Creating Alert", description: "Could not save the area alert. LocalStorage might be full.", variant: "destructive" });
@@ -190,15 +241,15 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleCreateAlert)} className="space-y-3 border p-3 sm:p-4 rounded-md bg-card shadow">
               <h3 className="text-base font-medium text-foreground mb-2">Create New Area Alert</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <FormField control={form.control} name="lat" render={({ field }) => (<FormItem><FormLabel htmlFor="lat" className="text-xs flex items-center gap-1"><MapPin className="w-3 h-3"/>Latitude <span className="text-destructive">*</span></FormLabel><FormControl><Input id="lat" type="number" step="any" placeholder="e.g., 34.0522" {...field} className="text-sm h-9" value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="lon" render={({ field }) => (<FormItem><FormLabel htmlFor="lon" className="text-xs flex items-center gap-1"><MapPin className="w-3 h-3"/>Longitude <span className="text-destructive">*</span></FormLabel><FormControl><Input id="lon" type="number" step="any" placeholder="e.g., -118.2437" {...field} className="text-sm h-9" value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
               </div>
-              
+
               <div className="my-3 border rounded-md overflow-hidden aspect-video bg-muted">
                 <iframe
-                  key={mapUrl} 
+                  key={mapUrl}
                   width="100%"
                   height="100%"
                   src={mapUrl}
@@ -228,14 +279,14 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                     <Popover open={regionPopoverOpen} onOpenChange={setRegionPopoverOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
-                          <Button
+                           <Button
                             variant="outline"
                             role="combobox"
                             aria-expanded={regionPopoverOpen}
                             className="w-full justify-between text-sm h-9 font-normal"
                           >
                             <span className="truncate max-w-[calc(100%-2rem)]">
-                              {field.value || "Type any administrative region..."}
+                              {field.value || regionSearchTerm || "Type any administrative region..."}
                             </span>
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -245,24 +296,49 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                         <Command>
                           <CommandInput
                             placeholder="Type any administrative region..."
-                            value={field.value || ""}
-                            onValueChange={field.onChange} 
+                            value={regionSearchTerm}
+                            onValueChange={setRegionSearchTerm}
                             className="h-9"
                           />
                           <CommandList>
-                            <CommandEmpty>No specific suggestions. Type any region.</CommandEmpty>
+                            {regionSuggestions.length > 0 ? (
+                              regionSuggestions.map((suggestion) => (
+                                <CommandItem
+                                  key={suggestion.place_id}
+                                  value={suggestion.display_name}
+                                  onSelect={(currentValue) => {
+                                    form.setValue("adminRegionName", currentValue === regionSearchTerm ? regionSearchTerm : currentValue, { shouldValidate: true, shouldDirty: true });
+                                    setRegionSearchTerm(currentValue === regionSearchTerm ? regionSearchTerm : currentValue);
+                                    setRegionSuggestions([]);
+                                    setRegionPopoverOpen(false);
+                                    // Optionally, try to set lat/lon if user selects a suggestion
+                                    // This part is experimental and might need refinement
+                                    if (suggestion.lat && suggestion.lon && (!form.getValues('lat') || !form.getValues('lon'))) {
+                                        form.setValue('lat', parseFloat(suggestion.lat), {shouldDirty: true});
+                                        form.setValue('lon', parseFloat(suggestion.lon), {shouldDirty: true});
+                                        toast({title: "Coordinates Updated", description: `Lat/Lon updated from region selection: ${suggestion.display_name}`});
+                                    }
+                                  }}
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", field.value === suggestion.display_name || regionSearchTerm === suggestion.display_name ? "opacity-100" : "opacity-0")}/>
+                                  {suggestion.display_name}
+                                </CommandItem>
+                              ))
+                            ) : (
+                              regionSearchTerm.length > 1 && <CommandEmpty>No region found.</CommandEmpty>
+                            )}
                           </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
                     <FormDescription className="text-xs text-muted-foreground mt-1">
-                      Enter any region (e.g., city, state, county) for informational context.
+                      Enter any region (e.g., city, state, county) for informational context. Suggestions provided by OpenStreetMap.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <FormField control={form.control} name="message" render={({ field }) => (<FormItem><FormLabel htmlFor="message" className="text-xs flex items-center gap-1"><MessageSquareText className="w-3 h-3"/>Alert Message</FormLabel><FormControl><Textarea id="message" placeholder="e.g., Evacuate area due to fire." {...field} className="text-sm min-h-[50px]" /></FormControl><FormMessage /><p className="text-xs text-muted-foreground text-right">{field.value?.length || 0}/200</p></FormItem>)} />
               <Button type="submit" disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm w-full h-9">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <AlertTriangleForm className="mr-2 h-4 w-4" />} Create Area Alert
@@ -302,23 +378,3 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
     </Dialog>
   );
 }
-    
-
-    
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
