@@ -14,8 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
-  DialogFooter
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Loader2, MapPin, CircleDot, MessageSquareText, AlertTriangle as AlertTriangleForm, ListChecks, Trash2, Megaphone, Info, BookText, ChevronsUpDown, Check } from 'lucide-react';
@@ -64,7 +62,7 @@ const fetchNominatimSuggestions = async (query: string): Promise<NominatimSugges
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'R.A.D.A.R-App/1.0 (LifeApp@example.com)', // Replace with your app's name and contact
+        'User-Agent': 'R.A.D.A.R-App/1.0 (LifeApp@example.com)',
       },
     });
     if (!response.ok) {
@@ -193,7 +191,6 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       timestamp: Date.now(),
     };
 
-    // Attempt to activate SOS on the current (rescuer's) device if it's in the new zone
     try {
         const position = await new Promise<{ coords: GeolocationCoordinates }>((resolve, reject) => 
             navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 })
@@ -222,7 +219,6 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                     try {
                         const parsedInfo = JSON.parse(victimBasicInfoRaw) as VictimBasicInfo;
                         if (parsedInfo.name) victimName = parsedInfo.name.replace(/\s+/g, '_').substring(0, 20);
-                        // Keep parsedInfo.customSOSMessage separate, use newAlert.message first for this context
                     } catch (e) { /* use defaults */ }
                 }
                 
@@ -268,12 +264,11 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
         window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Could not get current location to check if rescuer is in the new alert zone. Error: ${ (geoErr as Error).message }` }));
     }
 
-    // Save the alert to the list for other users
     try {
       const currentAlerts = [...activeMassAlerts];
-      currentAlerts.unshift(newAlert); // Add to the beginning
+      currentAlerts.unshift(newAlert); 
       localStorage.setItem(MASS_ALERT_DEFINITIONS_KEY, JSON.stringify(currentAlerts));
-      setActiveMassAlerts(currentAlerts.sort((a, b) => b.timestamp - a.timestamp)); // Re-sort just in case
+      setActiveMassAlerts(currentAlerts.sort((a, b) => b.timestamp - a.timestamp)); 
       toast({
         title: "Area Alert Created",
         description: `Alert active for ${data.adminRegionName ? data.adminRegionName + ' - ' : ''}LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m.`,
@@ -282,7 +277,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       form.reset({ adminRegionName: "", lat: undefined, lon: undefined, radius: 1000, message: ""});
       setRegionSearchTerm(""); 
       setRegionSuggestions([]); 
-      window.dispatchEvent(new CustomEvent('massAlertsUpdated')); // Notify other components like MapDisplayPanel
+      window.dispatchEvent(new CustomEvent('massAlertsUpdated')); 
     } catch (e) {
       toast({ title: "Error Creating Alert", description: "Could not save the area alert. LocalStorage might be full.", variant: "destructive" });
       window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Error creating alert - LocalStorage issue.` }));
@@ -326,7 +321,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                 name="adminRegionName"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel htmlFor="adminRegionName" className="text-xs flex items-center gap-1">
+                    <FormLabel htmlFor="adminRegionName-input" className="text-xs flex items-center gap-1">
                       <BookText className="w-3 h-3"/>Administrative Region
                     </FormLabel>
                     <Popover open={regionPopoverOpen} onOpenChange={setRegionPopoverOpen}>
@@ -348,6 +343,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                         <Command>
                           <CommandInput
+                            id="adminRegionName-input"
                             placeholder="Type any administrative region..."
                             value={regionSearchTerm}
                             onValueChange={setRegionSearchTerm}
@@ -454,12 +450,8 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
              <p className="text-sm text-muted-foreground text-center py-4">No active area alerts.</p>
            )}
         </div>
-        <DialogFooter className="p-4 border-t bg-background sticky bottom-0 z-10">
-            <DialogClose asChild>
-                <Button type="button" variant="outline" size="sm">Close</Button>
-            </DialogClose>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
