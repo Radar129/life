@@ -25,7 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 
 const MASS_ALERT_DEFINITIONS_KEY = 'massAlertDefinitions';
-const DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES = 0.05; // Default zoom box size in degrees if no radius is given
+const DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES = 0.05; 
 
 const massAlertSchema = z.object({
   lat: z.coerce.number().min(-90, "Invalid Latitude (must be between -90 and 90)").max(90, "Invalid Latitude (must be between -90 and 90)"),
@@ -44,7 +44,7 @@ interface AreaAlertManagerDialogProps {
 export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManagerDialogProps) {
   const { toast } = useToast();
   const [activeMassAlerts, setActiveMassAlerts] = useState<MassAlert[]>([]);
-  const [mapUrl, setMapUrl] = useState<string>('https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik'); // Default world view
+  const [mapUrl, setMapUrl] = useState<string>('https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik');
 
   const form = useForm<MassAlertFormValues>({
     resolver: zodResolver(massAlertSchema),
@@ -96,11 +96,9 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
         const latRadians = lat * (Math.PI / 180);
         const radiusKm = radiusMeters / 1000;
 
-        // Approximate degree offsets for latitude and longitude
         const latOffsetDegrees = (radiusKm / earthRadiusKm) * (180 / Math.PI);
         const lonOffsetDegrees = (radiusKm / (earthRadiusKm * Math.cos(latRadians))) * (180 / Math.PI);
         
-        // Padding factor to ensure the area is comfortably within view
         const paddingFactor = 1.2; 
 
         bboxArray = [
@@ -110,7 +108,6 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
           lat + latOffsetDegrees * paddingFactor,
         ];
       } else {
-        // Default bounding box around the point if no valid radius
         bboxArray = [
           lon - DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
           lat - DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
@@ -119,10 +116,10 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
         ];
       }
       
-      const bbox = bboxArray.map(coord => parseFloat(coord.toFixed(5))).join(','); // Limit precision for URL
+      const bbox = bboxArray.map(coord => parseFloat(coord.toFixed(5))).join(',');
       setMapUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`);
     } else {
-      setMapUrl('https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik'); // Reset to default world view
+      setMapUrl('https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik');
     }
   }, [watchedLat, watchedLon, watchedRadius]);
 
@@ -245,7 +242,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
            )}
         </div>
 
-        <DialogFooter className="p-4 border-t bg-background sticky bottom-0 flex flex-row justify-end space-x-2">
+        <DialogFooter className="p-4 border-t bg-background sticky bottom-0 flex flex-row items-center justify-end space-x-2">
           <DialogClose asChild>
             <Button type="button" variant="outline" size="sm">Close</Button>
           </DialogClose>
@@ -257,5 +254,6 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
     
 
     
+
 
 
