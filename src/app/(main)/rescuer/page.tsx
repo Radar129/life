@@ -37,7 +37,9 @@ export default function RescuerPage() {
         toast({ title: "Authentication Required", description: "Please log in to access the rescuer dashboard.", variant: "destructive"});
       } else {
         setIsAuthenticated(true);
-        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Dashboard: Authenticated and loaded." }));
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Dashboard: Authenticated and loaded." }));
+        }, 0);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,7 +54,9 @@ export default function RescuerPage() {
         localStorage.removeItem('isRescuerAuthenticated');
     }
     toast({ title: "Logged Out", description: "You have been successfully logged out." });
-    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Dashboard: Logged out." }));
+    setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Dashboard: Logged out." }));
+    }, 0);
     router.replace('/'); 
   };
 
@@ -77,7 +81,7 @@ export default function RescuerPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-start">
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-          <SOSScannerPanel onSignalsDetected={handleSignalsDetected} detectedSignals={detectedSignals} setDetectedSignals={setDetectedSignals}/>
+          <SOSScannerPanel detectedSignals={detectedSignals} setDetectedSignals={setDetectedSignals}/>
           <MapDisplayPanel signals={detectedSignals} />
         </div>
         <div className="lg:sticky lg:top-[calc(4rem+1.5rem)] space-y-4 sm:space-y-6">

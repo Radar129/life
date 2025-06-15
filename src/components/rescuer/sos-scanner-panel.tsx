@@ -75,16 +75,22 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
             lon: parseFloat(position.coords.longitude.toFixed(4)),
           };
           setRescuerLocation(newLoc);
-          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Rescuer location obtained: LAT ${newLoc.lat}, LON ${newLoc.lon}` }));
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Rescuer location obtained: LAT ${newLoc.lat}, LON ${newLoc.lon}` }));
+          }, 0);
         },
         () => {
           console.warn("Could not get rescuer location for SOS Scanner.");
-          window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Could not get rescuer location." }));
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Could not get rescuer location." }));
+          }, 0);
         }
       );
     } else {
        console.warn("Geolocation is not supported by this browser for SOS Scanner.");
-       window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Geolocation not supported by browser." }));
+       setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Geolocation not supported by browser." }));
+       }, 0);
     }
   }, []);
 
@@ -93,7 +99,9 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
       setScanButtonStatus("scanning");
       setError(null);
       toast({ title: "Refreshing Scan...", description: "Looking for active SOS signal from this device..." });
-      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Manual refresh scan initiated." }));
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "SOS Scanner: Manual refresh scan initiated." }));
+      }, 0);
     }
 
     setTimeout(() => {
@@ -160,15 +168,21 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
         const victimInfo = JSON.parse(storedVictimInfoRaw) as VictimBasicInfo;
         setSelectedVictimDetails(victimInfo);
         setIsDetailsDialogOpen(true);
-        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Viewing profile for signal ID ${signalId} (local user: ${victimInfo.name || 'N/A'}).` }));
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Viewing profile for signal ID ${signalId} (local user: ${victimInfo.name || 'N/A'}).` }));
+        }, 0);
       } catch (e) {
         console.error("Error parsing victim info for details dialog:", e);
         toast({ title: "Error", description: "Could not load victim details.", variant: "destructive" });
-        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Error loading profile for signal ID ${signalId}.` }));
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Error loading profile for signal ID ${signalId}.` }));
+        }, 0);
       }
     } else {
       toast({ title: "No Details", description: "Victim profile information not found locally for this signal.", variant: "default" });
-      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Victim profile not found locally for signal ID ${signalId}.` }));
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Victim profile not found locally for signal ID ${signalId}.` }));
+      }, 0);
     }
   };
 
@@ -180,7 +194,9 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
         const signalFromStorageRaw = localStorage.getItem(LOCAL_STORAGE_SOS_KEY);
         if (signalFromStorageRaw) { try { let signalFromStorage: DetectedSignal = JSON.parse(signalFromStorageRaw); signalFromStorage.status = newStatus; localStorage.setItem(LOCAL_STORAGE_SOS_KEY, JSON.stringify(signalFromStorage)); } catch (e) { console.error("Could not update status in localStorage for local_sos_signal:", e);}}
     }
-    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Updated status for victim ${signal?.name || signalId} to ${newStatus}.` }));
+    setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Updated status for victim ${signal?.name || signalId} to ${newStatus}.` }));
+    }, 0);
   };
 
   const handleRemoveSignal = (signalIdToRemove: string) => {
@@ -188,13 +204,25 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
     const remainingSignals = detectedSignals.filter(signal => signal.id !== signalIdToRemove);
     setDetectedSignals(remainingSignals);
     toast({ title: "Signal Removed", description: `Signal for ${signalToRemove?.name || signalIdToRemove} has been removed.` });
-    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Manually removed signal ${signalToRemove?.name || signalIdToRemove} from the list.` }));
+    setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Manually removed signal ${signalToRemove?.name || signalIdToRemove} from the list.` }));
+    }, 0);
   };
 
   const openGoogleMapsDirections = (victimLat: number, victimLon: number, victimName?: string) => {
     let url: string;
-    if (rescuerLocation) { url = `https://www.google.com/maps/dir/?api=1&origin=${rescuerLocation.lat},${rescuerLocation.lon}&destination=${victimLat},${victimLon}&travelmode=driving`; window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Opening Google Maps directions for ${victimName || 'victim'} from ${rescuerLocation.lat},${rescuerLocation.lon} to ${victimLat},${victimLon}.` }));} 
-    else { url = `https://www.google.com/maps/search/?api=1&query=${victimLat},${victimLon}`; window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Opening Google Maps for ${victimName || 'victim'} at ${victimLat},${victimLon} (rescuer location unavailable).` })); console.warn("Rescuer location not available for directions, opening victim location directly.");}
+    let logDetail: string;
+    if (rescuerLocation) { 
+        url = `https://www.google.com/maps/dir/?api=1&origin=${rescuerLocation.lat},${rescuerLocation.lon}&destination=${victimLat},${victimLon}&travelmode=driving`; 
+        logDetail = `SOS Scanner: Opening Google Maps directions for ${victimName || 'victim'} from ${rescuerLocation.lat},${rescuerLocation.lon} to ${victimLat},${victimLon}.`;
+    } else { 
+        url = `https://www.google.com/maps/search/?api=1&query=${victimLat},${victimLon}`; 
+        logDetail = `SOS Scanner: Opening Google Maps for ${victimName || 'victim'} at ${victimLat},${victimLon} (rescuer location unavailable).`;
+        console.warn("Rescuer location not available for directions, opening victim location directly.");
+    }
+    setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: logDetail }));
+    }, 0);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
