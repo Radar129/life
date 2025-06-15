@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Map, Navigation, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
+import { Map, Navigation, AlertTriangle as AlertTriangleIcon, BookText } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import type { DetectedSignal, MassAlert } from '@/types/signals'; // Added MassAlert
@@ -98,12 +98,10 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
     });
     
     activeMassAlerts.forEach(alert => {
-      // Add alert center for bounding box calculation
       allLats.push(alert.lat);
       allLons.push(alert.lon);
       // markerParams.push(`marker=${alert.lat},${alert.lon}`); // Optional: mark alert centers too
 
-      // Add alert boundaries for bounding box calculation
       const { latOffsetDegrees, lonOffsetDegrees } = getDegreeOffsets(alert.radius, alert.lat);
       allLats.push(alert.lat - latOffsetDegrees, alert.lat + latOffsetDegrees);
       allLons.push(alert.lon - lonOffsetDegrees, alert.lon + lonOffsetDegrees);
@@ -120,7 +118,6 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
       const latRange = maxLat - minLat;
       const lonRange = maxLon - minLon;
       
-      // Add padding: 20% of range, or default if range is zero
       const latPadding = latRange * 0.2 || DEFAULT_ZOOM_BOX_SIZE / 2;
       const lonPadding = lonRange * 0.2 || DEFAULT_ZOOM_BOX_SIZE / 2;
 
@@ -132,7 +129,6 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
       bboxStr = `${finalMinLon},${finalMinLat},${finalMaxLon},${finalMaxLat}`;
 
     } else {
-      // Default view if no points
       const defaultMinLon = (DEFAULT_LON - DEFAULT_ZOOM_BOX_SIZE).toFixed(5);
       const defaultMinLat = (DEFAULT_LAT - DEFAULT_ZOOM_BOX_SIZE).toFixed(5);
       const defaultMaxLon = (DEFAULT_LON + DEFAULT_ZOOM_BOX_SIZE).toFixed(5);
@@ -168,7 +164,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
           Incident Map
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Live map of rescuer, victims, and active alert areas. Markers for rescuer/victims are blue. Alert areas are framed.
+          Live map of rescuer, victims, and active alert areas. Markers for rescuer/victims are blue. Alert areas are framed by the map's viewport.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -232,6 +228,7 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
                 <div key={alert.id} className="text-xs text-muted-foreground border-b pb-1 mb-1 last:border-b-0 last:pb-0 last:mb-0">
                   <p><span className="font-medium text-foreground">Center:</span> LAT {alert.lat}, LON {alert.lon}</p>
                   <p><span className="font-medium text-foreground">Radius:</span> {alert.radius}m</p>
+                  {alert.adminRegionName && <p><span className="font-medium text-foreground flex items-center gap-0.5"><BookText className="w-3 h-3"/>Region:</span> {alert.adminRegionName}</p>}
                   {alert.message && <p><span className="font-medium text-foreground">Message:</span> "{alert.message}"</p>}
                   <p><span className="font-medium text-foreground">Created:</span> {format(new Date(alert.timestamp), 'PPp')}</p>
                 </div>
@@ -248,3 +245,4 @@ export function MapDisplayPanel({ signals }: MapDisplayPanelProps) {
   );
 }
     
+

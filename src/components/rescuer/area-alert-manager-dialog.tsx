@@ -14,11 +14,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
+  // DialogFooter, // Removed
   DialogClose,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, MapPin, CircleDot, MessageSquareText, AlertTriangle as AlertTriangleForm, ListChecks, Trash2, Megaphone, Info } from 'lucide-react';
+import { Loader2, MapPin, CircleDot, MessageSquareText, AlertTriangle as AlertTriangleForm, ListChecks, Trash2, Megaphone, Info, BookText } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { MassAlert } from '@/types/signals';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,6 +34,7 @@ const massAlertSchema = z.object({
   lon: z.coerce.number().min(-180, "Invalid Longitude (must be between -180 and 180)").max(180, "Invalid Longitude (must be between -180 and 180)"),
   radius: z.coerce.number().min(1, "Radius must be at least 1 meter.").max(50000, "Radius cannot exceed 50km (50,000m)."),
   message: z.string().max(200, "Message too long (max 200 characters).").optional(),
+  adminRegionName: z.string().max(100, "Region name too long (max 100 characters).").optional(),
 });
 
 type MassAlertFormValues = z.infer<typeof massAlertSchema>;
@@ -55,6 +56,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       lon: undefined,
       radius: 1000, 
       message: "",
+      adminRegionName: "",
     },
   });
   const { isSubmitting } = form.formState; 
@@ -109,7 +111,6 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
           lat + latOffsetDegrees * paddingFactor,
         ];
       } else {
-        // Use a default bounding box if radius is not valid, centered on the coords
         bboxArray = [
           lon - DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
           lat - DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
@@ -121,7 +122,6 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       const bbox = bboxArray.map(coord => parseFloat(coord.toFixed(5))).join(',');
       setMapUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`);
     } else {
-      // Default world view if no valid coordinates
       setMapUrl('https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik');
     }
   }, [watchedLat, watchedLon, watchedRadius]);
@@ -134,6 +134,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       lon: data.lon,
       radius: data.radius,
       message: data.message || undefined,
+      adminRegionName: data.adminRegionName || undefined,
       timestamp: Date.now(),
     };
 
@@ -144,10 +145,10 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       setActiveMassAlerts(currentAlerts.sort((a, b) => b.timestamp - a.timestamp));
       toast({
         title: "Area Alert Created",
-        description: `Alert active for LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m.`,
+        description: `Alert active for LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m. ${data.adminRegionName ? 'Region: ' + data.adminRegionName : ''}`,
       });
-      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Created alert ID ${newAlert.id} for LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m. Message: "${data.message || 'None'}"` }));
-      form.reset({ lat: undefined, lon: undefined, radius: 1000, message: ""}); 
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Created alert ID ${newAlert.id} for LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m. ${data.adminRegionName ? 'Region: ' + data.adminRegionName : ''} Message: "${data.message || 'None'}"` }));
+      form.reset({ lat: undefined, lon: undefined, radius: 1000, message: "", adminRegionName: ""}); 
       window.dispatchEvent(new CustomEvent('massAlertsUpdated'));
     } catch (e) {
       toast({ title: "Error Creating Alert", description: "Could not save the area alert. LocalStorage might be full.", variant: "destructive" });
@@ -178,7 +179,8 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
             Area SOS Alert Manager
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Define geographical zones by manually entering GPS coordinates (Latitude, Longitude) and a radius. The map will adjust its view to the specified area and display a marker at the center point. Alerts are stored locally.
+            Define geographical zones by manually entering GPS coordinates (Latitude, Longitude) and a radius. The map will adjust its view to the specified area and display a marker at the center point.
+            Specifying an "Administrative Region" is for informational context for other rescuers; actual alerting uses coordinates/radius. Alerts are stored locally.
           </DialogDescription>
         </DialogHeader>
 
@@ -209,7 +211,12 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                 <Info className="w-3.5 h-3.5"/> Map shows the entered center point and adjusts view to the approximate area. Interactive selection/radius drawing not supported.
               </p>
 
-              <FormField control={form.control} name="radius" render={({ field }) => (<FormItem><FormLabel htmlFor="radius" className="text-xs flex items-center gap-1"><CircleDot className="w-3 h-3"/>Radius (meters) <span className="text-destructive">*</span></FormLabel><FormControl><Input id="radius" type="number" placeholder="e.g., 1000 (for 1km)" {...field} className="text-sm h-9" value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="radius" render={({ field }) => (<FormItem><FormLabel htmlFor="radius" className="text-xs flex items-center gap-1"><CircleDot className="w-3 h-3"/>Radius (meters) <span className="text-destructive">*</span></FormLabel><FormControl><Input id="radius" type="number" placeholder="e.g., 1000 (for 1km)" {...field} className="text-sm h-9" value={field.value ?? ''}/></FormControl><FormMessage />
+              <p className="text-xs text-muted-foreground mt-1">e.g., Urban: 500-1000m, Rural: 5000-10000m+.</p>
+              </FormItem>)} />
+
+              <FormField control={form.control} name="adminRegionName" render={({ field }) => (<FormItem><FormLabel htmlFor="adminRegionName" className="text-xs flex items-center gap-1"><BookText className="w-3 h-3"/>Administrative Region (Optional)</FormLabel><FormControl><Input id="adminRegionName" placeholder="e.g., Los Angeles County, Downtown District" {...field} className="text-sm h-9" /></FormControl><FormMessage /><p className="text-xs text-muted-foreground mt-1">For informational context (e.g., city, state).</p></FormItem>)} />
+              
               <FormField control={form.control} name="message" render={({ field }) => (<FormItem><FormLabel htmlFor="message" className="text-xs flex items-center gap-1"><MessageSquareText className="w-3 h-3"/>Alert Message (Optional)</FormLabel><FormControl><Textarea id="message" placeholder="e.g., Evacuate area due to fire." {...field} className="text-sm min-h-[50px]" /></FormControl><FormMessage /><p className="text-xs text-muted-foreground text-right">{field.value?.length || 0}/200</p></FormItem>)} />
               <Button type="submit" disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm w-full h-9">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <AlertTriangleForm className="mr-2 h-4 w-4" />} Create Area Alert
@@ -227,6 +234,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-medium text-foreground">LAT: {alert.lat}, LON: {alert.lon}, Radius: {alert.radius}m</p>
+                          {alert.adminRegionName && <p className="text-muted-foreground">Region: {alert.adminRegionName}</p>}
                           {alert.message && <p className="text-muted-foreground italic mt-0.5">Message: "{alert.message}"</p>}
                           <p className="text-muted-foreground text-xs mt-0.5">Created: {format(new Date(alert.timestamp), 'PPpp')}</p>
                         </div>
@@ -244,12 +252,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
              <p className="text-sm text-muted-foreground text-center py-4">No active area alerts.</p>
            )}
         </div>
-
-        <DialogFooter className="p-4 sticky bottom-0 flex flex-row items-center justify-end space-x-2">
-          <DialogClose asChild>
-            <h2 className="text-base font-medium cursor-pointer p-2 hover:bg-accent hover:text-accent-foreground rounded-md">Close</h2>
-          </DialogClose>
-        </DialogFooter>
+        {/* DialogFooter removed as per user request to use the default 'X' close button */}
       </DialogContent>
     </Dialog>
   );
@@ -263,5 +266,6 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
 
     
+
 
 

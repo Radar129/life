@@ -48,6 +48,7 @@ export interface MassAlert {
   lon: number;
   radius: number; // in meters
   message?: string; // Optional message from rescuer
+  adminRegionName?: string; // Optional administrative region name
   timestamp: number; // Creation timestamp
 }
     
