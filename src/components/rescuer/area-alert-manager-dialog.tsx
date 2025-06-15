@@ -46,19 +46,6 @@ interface AreaAlertManagerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const adminRegionSuggestions = [
-  { label: "Los Angeles County" },
-  { label: "New York City" },
-  { label: "State of California" },
-  { label: "Downtown Business District" },
-  { label: "Chicago Metropolitan Area" },
-  { label: "Austin City Limits" },
-  { label: "North Province" },
-  { label: "East Region Emergency Zone" },
-  { label: "Rural Area Alpha" },
-  { label: "Coastal Municipality" },
-];
-
 export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManagerDialogProps) {
   const { toast } = useToast();
   const [activeMassAlerts, setActiveMassAlerts] = useState<MassAlert[]>([]);
@@ -247,7 +234,9 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                             aria-expanded={regionPopoverOpen}
                             className="w-full justify-between text-sm h-9 font-normal"
                           >
-                            {field.value || "Select or type region..."}
+                            <span className="truncate max-w-[calc(100%-2rem)]">
+                              {field.value || "Type any administrative region..."}
+                            </span>
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
@@ -255,39 +244,19 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                         <Command>
                           <CommandInput
-                            placeholder="Search or type region..."
+                            placeholder="Type any administrative region..."
                             value={field.value || ""}
                             onValueChange={field.onChange} 
                             className="h-9"
                           />
                           <CommandList>
-                            <CommandEmpty>No region found.</CommandEmpty>
-                            <CommandGroup>
-                              {adminRegionSuggestions.map((suggestion) => (
-                                <CommandItem
-                                  key={suggestion.label}
-                                  value={suggestion.label}
-                                  onSelect={() => {
-                                    field.onChange(suggestion.label);
-                                    setRegionPopoverOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      field.value?.toLowerCase() === suggestion.label.toLowerCase() ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {suggestion.label}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
+                            <CommandEmpty>No specific suggestions. Type any region.</CommandEmpty>
                           </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
                     <FormDescription className="text-xs text-muted-foreground mt-1">
-                      For informational context (e.g., city, state).
+                      Enter any region (e.g., city, state, county) for informational context.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -342,6 +311,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
 
     
+
 
 
 
