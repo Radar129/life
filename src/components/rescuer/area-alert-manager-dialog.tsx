@@ -172,17 +172,17 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl h-[90vh] flex flex-col">
-        <DialogHeader className="p-4 sm:p-6 border-b sticky top-0 bg-background z-10">
+        <DialogHeader className="p-6 pb-4 border-b sticky top-0 bg-background z-10">
           <DialogTitle className="font-headline text-lg sm:text-xl flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-primary" />
             Area SOS Alert Manager
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Define geographical zones by manually entering GPS coordinates (Latitude, Longitude) and a radius. The map will adjust its view to the specified area and display a marker at the center point. Specifying an "Administrative Region" is for informational context for other rescuers; actual alerting uses coordinates/radius. Alerts are stored locally.
+            Define geographical zones by manually entering GPS coordinates (Latitude, Longitude) and a radius. The map will adjust its view to the specified area and display a marker at the center point. Alerts are stored locally.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-grow overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="flex-grow overflow-y-auto p-6 space-y-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleCreateAlert)} className="space-y-3 border p-3 sm:p-4 rounded-md bg-card shadow">
               <h3 className="text-base font-medium text-foreground mb-2">Create New Area Alert</h3>
@@ -263,6 +263,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
 
     
+
 
 
 
