@@ -14,14 +14,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  // DialogFooter, DialogClose removed
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, MapPin, CircleDot, MessageSquareText, AlertTriangle as AlertTriangleForm, ListChecks, Trash2, Megaphone, Info, BookText } from 'lucide-react';
+import { Loader2, MapPin, CircleDot, MessageSquareText, AlertTriangle as AlertTriangleForm, ListChecks, Trash2, Megaphone, Info, BookText, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { MassAlert } from '@/types/signals';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+
 
 const MASS_ALERT_DEFINITIONS_KEY = 'massAlertDefinitions';
 const DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES = 0.05; 
@@ -43,10 +46,24 @@ interface AreaAlertManagerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const adminRegionSuggestions = [
+  { label: "Los Angeles County" },
+  { label: "New York City" },
+  { label: "State of California" },
+  { label: "Downtown Business District" },
+  { label: "Chicago Metropolitan Area" },
+  { label: "Austin City Limits" },
+  { label: "North Province" },
+  { label: "East Region Emergency Zone" },
+  { label: "Rural Area Alpha" },
+  { label: "Coastal Municipality" },
+];
+
 export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManagerDialogProps) {
   const { toast } = useToast();
   const [activeMassAlerts, setActiveMassAlerts] = useState<MassAlert[]>([]);
   const [mapUrl, setMapUrl] = useState<string>('https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik');
+  const [regionPopoverOpen, setRegionPopoverOpen] = useState(false);
 
   const form = useForm<MassAlertFormValues>({
     resolver: zodResolver(massAlertSchema),
@@ -213,7 +230,69 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
               <p className="text-xs text-muted-foreground mt-1">e.g., Urban: 500-1000m, Rural: 5000-10000m+.</p>
               </FormItem>)} />
 
-              <FormField control={form.control} name="adminRegionName" render={({ field }) => (<FormItem><FormLabel htmlFor="adminRegionName" className="text-xs flex items-center gap-1"><BookText className="w-3 h-3"/>Administrative Region (Optional)</FormLabel><FormControl><Input id="adminRegionName" placeholder="e.g., Los Angeles County, Downtown District" {...field} className="text-sm h-9" /></FormControl><FormMessage /><p className="text-xs text-muted-foreground mt-1">For informational context (e.g., city, state).</p></FormItem>)} />
+              <FormField
+                control={form.control}
+                name="adminRegionName"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel htmlFor="adminRegionName" className="text-xs flex items-center gap-1">
+                      <BookText className="w-3 h-3"/>Administrative Region (Optional)
+                    </FormLabel>
+                    <Popover open={regionPopoverOpen} onOpenChange={setRegionPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={regionPopoverOpen}
+                            className="w-full justify-between text-sm h-9 font-normal"
+                          >
+                            {field.value || "Select or type region..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search or type region..."
+                            value={field.value || ""}
+                            onValueChange={field.onChange} 
+                            className="h-9"
+                          />
+                          <CommandList>
+                            <CommandEmpty>No region found.</CommandEmpty>
+                            <CommandGroup>
+                              {adminRegionSuggestions.map((suggestion) => (
+                                <CommandItem
+                                  key={suggestion.label}
+                                  value={suggestion.label}
+                                  onSelect={() => {
+                                    field.onChange(suggestion.label);
+                                    setRegionPopoverOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      field.value?.toLowerCase() === suggestion.label.toLowerCase() ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {suggestion.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription className="text-xs text-muted-foreground mt-1">
+                      For informational context (e.g., city, state).
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <FormField control={form.control} name="message" render={({ field }) => (<FormItem><FormLabel htmlFor="message" className="text-xs flex items-center gap-1"><MessageSquareText className="w-3 h-3"/>Alert Message (Optional)</FormLabel><FormControl><Textarea id="message" placeholder="e.g., Evacuate area due to fire." {...field} className="text-sm min-h-[50px]" /></FormControl><FormMessage /><p className="text-xs text-muted-foreground text-right">{field.value?.length || 0}/200</p></FormItem>)} />
               <Button type="submit" disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm w-full h-9">
@@ -263,6 +342,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
 
     
+
 
 
 
