@@ -244,19 +244,20 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                     advertisedName,
                     customSosMessage: effectiveSosMessage, 
                     activationTimestamp: Date.now(),
-                    activationSource: "central", 
+                    activationSource: "central",
+                    triggeringCentralAlertId: newAlert.id,
                 };
                 localStorage.setItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY, JSON.stringify(victimSOSState));
 
-                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Rescuer's own device is within the newly created alert. Activating local SOS as ${advertisedName}. Alert Msg: "${effectiveSosMessage}"` }));
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Rescuer's own device is within the newly created alert. Activating local SOS as ${advertisedName}. Alert Msg: "${effectiveSosMessage}"` }));
+                    window.dispatchEvent(new CustomEvent('localSOSStateChangedByExternal'));
+                }, 0);
                 toast({
                     title: "Local SOS Activated",
                     description: `Your device is within the area alert. Message: "${effectiveSosMessage}"`,
                     variant: "default" 
                 });
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('localSOSStateChangedByExternal'));
-                }, 0);
             } else {
                  window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Rescuer's device is within new alert zone, but SOS is already active.` }));
             }
@@ -291,11 +292,37 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
     const updatedAlerts = activeMassAlerts.filter(alert => alert.id !== alertId);
     localStorage.setItem(MASS_ALERT_DEFINITIONS_KEY, JSON.stringify(updatedAlerts));
     setActiveMassAlerts(updatedAlerts);
-    toast({ title: "Area Alert Stopped", description: `Alert ID ${alertId} has been deactivated.` });
+
     if (alertToStop) {
-         window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Stopped alert ID ${alertId} (${alertToStop.adminRegionName ? alertToStop.adminRegionName + ' - ' : ''}LAT ${alertToStop.lat}, LON ${alertToStop.lon}, Radius ${alertToStop.radius}m).` }));
+      toast({ title: "Area Alert Stopped", description: `Alert for ${alertToStop.adminRegionName || `ID ${alertToStop.id}`} has been deactivated.` });
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Stopped alert ID ${alertId} (${alertToStop.adminRegionName ? alertToStop.adminRegionName + ' - ' : ''}LAT ${alertToStop.lat}, LON ${alertToStop.lon}, Radius ${alertToStop.radius}m).` }));
+
+      const persistedSOSStateRaw = localStorage.getItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
+      if (persistedSOSStateRaw) {
+        try {
+          const persistedSOSState = JSON.parse(persistedSOSStateRaw) as PersistedSOSState;
+          if (
+            persistedSOSState.isActive &&
+            persistedSOSState.activationSource === 'central' &&
+            persistedSOSState.triggeringCentralAlertId === alertId
+          ) {
+            localStorage.removeItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
+            localStorage.removeItem(LOCAL_STORAGE_SHARED_SOS_SIGNAL_KEY);
+
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('localSOSStateChangedByExternal'));
+                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Local SOS on rescuer device deactivated because triggering alert ID ${alertId} was stopped.` }));
+            },0);
+            toast({ title: "Local SOS Deactivated", description: "Your device's SOS was stopped as its triggering area alert ended.", variant: "default" });
+          }
+        } catch (e) {
+          console.error("Error processing persisted SOS state during alert stop:", e);
+           window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Error processing persisted SOS state for alert stop ID ${alertId}. Error: ${(e as Error).message}` }));
+        }
+      }
     } else {
-         window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Stopped alert ID ${alertId}.` }));
+      toast({ title: "Area Alert Stopped", description: `Alert ID ${alertId} has been deactivated.` });
+      window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Stopped alert ID ${alertId} (alert details not found in current list).` }));
     }
     window.dispatchEvent(new CustomEvent('massAlertsUpdated'));
   };
@@ -309,7 +336,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
             Area SOS Alert Manager
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Define geographical zones. Alerts are stored locally and can trigger SOS for users (including this device) within the zone.
+            Define geographical zones. Alerts can trigger SOS for users (including this device) within the zone.
           </DialogDescription>
         </DialogHeader>
 
@@ -382,7 +409,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                       </PopoverContent>
                     </Popover>
                     <FormDescription className="text-xs text-muted-foreground mt-1">
-                     Enter any region (e.g., city, state, county) for informational context. Suggestions provided by OpenStreetMap.
+                     Enter region for context. Suggestions by OpenStreetMap. Auto-fills Lat/Lon if empty.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

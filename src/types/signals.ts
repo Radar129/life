@@ -61,4 +61,6 @@ export interface PersistedSOSState {
   customSosMessage: string; // This will store the message being broadcast (either user's custom or alert's message)
   activationTimestamp: number;
   activationSource: 'manual' | 'central' | null;
+  triggeringCentralAlertId?: string; // ID of the MassAlert that triggered central activation
 }
+
