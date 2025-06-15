@@ -14,8 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter, // Re-added
-  DialogClose, // Re-added
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2, MapPin, CircleDot, MessageSquareText, AlertTriangle as AlertTriangleForm, ListChecks, Trash2, Megaphone, Info, BookText } from 'lucide-react';
@@ -251,7 +251,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
              <p className="text-sm text-muted-foreground text-center py-4">No active area alerts.</p>
            )}
         </div>
-        <DialogFooter className="p-4 sticky bottom-0 flex flex-row items-center justify-end space-x-2 bg-background border-t">
+        <DialogFooter className="p-4 sticky bottom-0 flex flex-row items-center justify-end space-x-2">
           <DialogClose asChild>
             <Button type="button" variant="outline" size="sm">Close</Button>
           </DialogClose>
@@ -269,6 +269,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
 
     
+
 
 
 
