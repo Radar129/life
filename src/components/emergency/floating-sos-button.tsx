@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Megaphone } from 'lucide-react'; // Added Megaphone
 import { usePathname } from 'next/navigation';
 
 export function FloatingSOSButton() {
@@ -34,7 +34,7 @@ export function FloatingSOSButton() {
   const handleCancelSOS = () => {
     setIsDialogOpen(false);
     const logEventName = pathname === '/rescuer' ? 'newRescuerAppLog' : 'newAppLog';
-    window.dispatchEvent(new CustomEvent(logEventName, { detail: "Floating SOS button: Activation cancelled." }));
+    window.dispatchEvent(new CustomEvent(logEventName, { detail: "Floating SOS button: Action cancelled." }));
   }
 
   // Button is only visible on the /rescuer page
@@ -51,7 +51,7 @@ export function FloatingSOSButton() {
           variant="destructive"
           size="lg"
           className="fixed bottom-24 right-6 sm:bottom-28 sm:right-8 z-50 rounded-full shadow-xl p-0 h-16 w-16 bg-destructive hover:bg-destructive/90 text-destructive-foreground flex flex-col items-center justify-center"
-          aria-label="Activate SOS"
+          aria-label="SOS Button" // Consider updating if functionality changes
         >
           <AlertTriangle className="h-6 w-6" />
           <span className="text-xs font-bold mt-0.5">SOS</span>
@@ -60,10 +60,11 @@ export function FloatingSOSButton() {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="text-destructive h-5 w-5" />
-            Confirm SOS Activation
+            <Megaphone className="text-primary h-5 w-5" /> {/* Changed icon and color */}
+            Area SOS Alert Manager {/* Changed title */}
           </AlertDialogTitle>
           <AlertDialogDescription>
+            {/* Description might need updating for consistency with the new title */}
             This will navigate you to User Mode and immediately activate the SOS distress signal, including location broadcasting and alerts. Are you sure you want to proceed?
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -72,6 +73,7 @@ export function FloatingSOSButton() {
           <AlertDialogAction
             onClick={handleActivateSOS}
             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            // Action button text might need updating
           >
             Activate SOS
           </AlertDialogAction>
@@ -80,3 +82,4 @@ export function FloatingSOSButton() {
     </AlertDialog>
   );
 }
+
