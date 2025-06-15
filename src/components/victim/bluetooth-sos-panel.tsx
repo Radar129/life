@@ -61,7 +61,7 @@ export function BluetoothSOSPanel() {
           startRebroadcastCountdown(persistedState.location, persistedState.victimNameForSignal, persistedState.customSosMessage);
 
           toast({ title: "SOS Resumed", description: "Your SOS signal has been resumed." });
-          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Resumed. Broadcasting (simulated) as ${persistedState.advertisedName}. Alerts enabled.` }));
+          window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Resumed. Broadcasting as ${persistedState.advertisedName}. Alerts enabled.` }));
           resumedFromStorage = true;
         } else {
            localStorage.removeItem(LOCAL_STORAGE_VICTIM_SOS_STATE_KEY);
@@ -119,15 +119,15 @@ export function BluetoothSOSPanel() {
     const advertisedName = `SOS_${victimName}_${currentLocation.lat}_${currentLocation.lon}`;
     const fullMessageForLog = `${customMessage} Location: LAT ${currentLocation.lat}, LON ${currentLocation.lon}. Name: ${victimName.replace(/_/g, ' ')}.`;
 
-    console.log(`SOS broadcast. Simulated device name: ${advertisedName}`);
-    console.log("Full SOS Message (Simulated):", fullMessageForLog);
+    console.log(`SOS broadcast. Device name: ${advertisedName}`);
+    console.log("Full SOS Message:", fullMessageForLog);
     
     if (!isResuming) { // Avoid duplicate logs/toasts if just resuming and immediately broadcasting
-      const logDetail = `SOS Signal Broadcast: Simulated Name ${advertisedName}. Message: ${fullMessageForLog}`;
+      const logDetail = `SOS Signal Broadcast: Name ${advertisedName}. Message: ${fullMessageForLog}`;
       window.dispatchEvent(new CustomEvent('newAppLog', { detail: logDetail }));
       toast({
         title: "SOS Broadcasting",
-        description: `Signal sent with (simulated): ${advertisedName}. Rebroadcasting periodically.`,
+        description: `Signal sent with: ${advertisedName}. Rebroadcasting periodically.`,
       });
     }
     
@@ -226,7 +226,7 @@ export function BluetoothSOSPanel() {
       startRebroadcastCountdown(loc, processedVictimName, customMessageFromProfile);
 
       const deviceNameForLog = `SOS_${processedVictimName}_${loc.lat}_${loc.lon}`;
-      window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activated. Broadcasting (simulated) as ${deviceNameForLog}. Alerts enabled.` }));
+      window.dispatchEvent(new CustomEvent('newAppLog', { detail: `SOS Activated. Broadcasting as ${deviceNameForLog}. Alerts enabled.` }));
       // Toast for initial activation is handled in broadcastSignal if !isResuming
 
     } catch (err: any) {
