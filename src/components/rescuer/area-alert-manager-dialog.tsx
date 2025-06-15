@@ -55,7 +55,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       message: "",
     },
   });
-  const { isSubmitting, watch } = form.formState;
+  const { isSubmitting } = form.formState; // Removed watch as it's not used directly in render logic after map preview addition
   const watchedLat = form.watch('lat');
   const watchedLon = form.watch('lon');
 
@@ -117,7 +117,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
         description: `Alert active for LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m.`,
       });
       window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Created alert ID ${newAlert.id} for LAT ${data.lat}, LON ${data.lon}, Radius ${data.radius}m. Message: "${data.message || 'None'}"` }));
-      form.reset({ lat: undefined, lon: undefined, radius: 1000, message: ""});
+      form.reset({ lat: undefined, lon: undefined, radius: 1000, message: ""}); // Ensure lat/lon are reset to undefined
       window.dispatchEvent(new CustomEvent('massAlertsUpdated'));
     } catch (e) {
       toast({ title: "Error Creating Alert", description: "Could not save the area alert. LocalStorage might be full.", variant: "destructive" });
@@ -148,8 +148,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
             Area SOS Alert Manager
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Define geographical zones to automatically activate SOS for users within them.
-            Alerts are stored locally.
+            Define geographical zones to automatically activate SOS for users within them. Alerts are stored locally.
           </DialogDescription>
         </DialogHeader>
 
@@ -165,7 +164,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
               
               <div className="my-3 border rounded-md overflow-hidden aspect-video bg-muted">
                 <iframe
-                  key={mapUrl} /* Force re-render on URL change */
+                  key={mapUrl} 
                   width="100%"
                   height="100%"
                   src={mapUrl}
@@ -180,7 +179,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                 <Info className="w-3.5 h-3.5"/> Map shows entered coordinates. Interactive selection/radius display not supported.
               </p>
 
-              <FormField control={form.control} name="radius" render={({ field }) => (<FormItem><FormLabel htmlFor="radius" className="text-xs flex items-center gap-1"><CircleDot className="w-3 h-3"/>Radius (meters) <span className="text-destructive">*</span></FormLabel><FormControl><Input id="radius" type="number" placeholder="e.g., 1000 (for 1km)" {...field} className="text-sm h-9" /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="radius" render={({ field }) => (<FormItem><FormLabel htmlFor="radius" className="text-xs flex items-center gap-1"><CircleDot className="w-3 h-3"/>Radius (meters) <span className="text-destructive">*</span></FormLabel><FormControl><Input id="radius" type="number" placeholder="e.g., 1000 (for 1km)" {...field} className="text-sm h-9" value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="message" render={({ field }) => (<FormItem><FormLabel htmlFor="message" className="text-xs flex items-center gap-1"><MessageSquareText className="w-3 h-3"/>Alert Message (Optional)</FormLabel><FormControl><Textarea id="message" placeholder="e.g., Evacuate area due to fire." {...field} className="text-sm min-h-[50px]" /></FormControl><FormMessage /><p className="text-xs text-muted-foreground text-right">{field.value?.length || 0}/200</p></FormItem>)} />
               <Button type="submit" disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm w-full h-9">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <AlertTriangleForm className="mr-2 h-4 w-4" />} Create Area Alert
@@ -225,5 +224,6 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
     </Dialog>
   );
 }
+    
 
     
