@@ -171,7 +171,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl p-0 h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl h-[90vh] flex flex-col">
         <DialogHeader className="p-4 sm:p-6 border-b sticky top-0 bg-background z-10">
           <DialogTitle className="font-headline text-lg sm:text-xl flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-primary" />
@@ -250,7 +250,6 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
              <p className="text-sm text-muted-foreground text-center py-4">No active area alerts.</p>
            )}
         </div>
-        {/* DialogFooter removed */}
       </DialogContent>
     </Dialog>
   );
@@ -264,6 +263,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
 
     
+
 
 
 
