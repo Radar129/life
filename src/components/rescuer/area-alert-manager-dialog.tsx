@@ -14,8 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  // DialogFooter, // Removed
-  DialogClose,
+  DialogFooter, // Re-added
+  DialogClose, // Re-added
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2, MapPin, CircleDot, MessageSquareText, AlertTriangle as AlertTriangleForm, ListChecks, Trash2, Megaphone, Info, BookText } from 'lucide-react';
@@ -179,8 +179,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
             Area SOS Alert Manager
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Define geographical zones by manually entering GPS coordinates (Latitude, Longitude) and a radius. The map will adjust its view to the specified area and display a marker at the center point.
-            Specifying an "Administrative Region" is for informational context for other rescuers; actual alerting uses coordinates/radius. Alerts are stored locally.
+            Define geographical zones by manually entering GPS coordinates (Latitude, Longitude) and a radius. The map will adjust its view to the specified area and display a marker at the center point. Specifying an "Administrative Region" is for informational context for other rescuers; actual alerting uses coordinates/radius. Alerts are stored locally.
           </DialogDescription>
         </DialogHeader>
 
@@ -252,7 +251,11 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
              <p className="text-sm text-muted-foreground text-center py-4">No active area alerts.</p>
            )}
         </div>
-        {/* DialogFooter removed as per user request to use the default 'X' close button */}
+        <DialogFooter className="p-4 sticky bottom-0 flex flex-row items-center justify-end space-x-2 bg-background border-t">
+          <DialogClose asChild>
+            <Button type="button" variant="outline" size="sm">Close</Button>
+          </DialogClose>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -266,6 +269,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
 
     
+
 
 
 
