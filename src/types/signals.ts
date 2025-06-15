@@ -41,4 +41,13 @@ export interface RescuerProfileInfo {
   profilePictureDataUrl?: string;
   // Add any other relevant fields for a rescuer
 }
+
+export interface MassAlert {
+  id: string; // Unique ID, e.g., timestamp based
+  lat: number;
+  lon: number;
+  radius: number; // in meters
+  message?: string; // Optional message from rescuer
+  timestamp: number; // Creation timestamp
+}
     

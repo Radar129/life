@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { SOSScannerPanel } from '@/components/rescuer/sos-scanner-panel';
 import { MapDisplayPanel } from '@/components/rescuer/map-display-panel';
 import { RescuerAdvicePanel } from '@/components/rescuer/rescuer-advice-panel';
-import { RescuerLogPanel } from '@/components/rescuer/rescuer-log-panel'; // Import new component
+import { RescuerLogPanel } from '@/components/rescuer/rescuer-log-panel';
+import { MassAlertPanel } from '@/components/rescuer/mass-alert-panel'; // Import MassAlertPanel
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -74,17 +75,17 @@ export default function RescuerPage() {
         </Button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
-        <div className="space-y-4 sm:space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-start">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           <SOSScannerPanel onSignalsDetected={handleSignalsDetected} detectedSignals={detectedSignals} setDetectedSignals={setDetectedSignals}/>
           <MapDisplayPanel signals={detectedSignals} />
         </div>
-        <div className="lg:sticky lg:top-[calc(4rem+1.5rem)] space-y-4 sm:space-y-6"> {/* Added space-y here */}
+        <div className="lg:sticky lg:top-[calc(4rem+1.5rem)] space-y-4 sm:space-y-6">
+          <MassAlertPanel /> {/* Add MassAlertPanel here */}
           <RescuerAdvicePanel />
-          {/* RescuerLogPanel was here, moved below the grid for full width */}
         </div>
       </div>
-      <div className="mt-6"> {/* New section for the log panel */}
+      <div className="mt-6"> 
          <RescuerLogPanel />
       </div>
     </div>
