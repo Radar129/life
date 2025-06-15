@@ -254,7 +254,9 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
                     description: `Your device is within the area alert. Message: "${effectiveSosMessage}"`,
                     variant: "default" 
                 });
-                window.dispatchEvent(new CustomEvent('localSOSStateChangedByExternal'));
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('localSOSStateChangedByExternal'));
+                }, 0);
             } else {
                  window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `Mass Alert Manager: Rescuer's device is within new alert zone, but SOS is already active.` }));
             }
