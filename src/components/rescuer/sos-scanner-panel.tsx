@@ -121,19 +121,27 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
               updatedSignalsList[existingSignalIndex] = { ...newSignalData, status: (oldStatus === "Signal Lost (Local)" && currentStatusInStorage !== "Signal Lost (Local)") ? currentStatusInStorage : oldStatus || currentStatusInStorage };
               if (wasPreviouslyLost && currentStatusInStorage !== "Signal Lost (Local)") {
                   if (isManualScan) toast({ title: "Local SOS Re-acquired", description: `Tracking: ${signalFromStorage.name}` });
-                  window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Re-acquired active local SOS for ${signalFromStorage.name}. Status: ${updatedSignalsList[existingSignalIndex].status}` }));
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Re-acquired active local SOS for ${signalFromStorage.name}. Status: ${updatedSignalsList[existingSignalIndex].status}` }));
+                  },0);
               } else if (isManualScan) {
-                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Refreshed active local SOS for ${signalFromStorage.name}. Status: ${updatedSignalsList[existingSignalIndex].status}` }));
+                 setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Refreshed active local SOS for ${signalFromStorage.name}. Status: ${updatedSignalsList[existingSignalIndex].status}` }));
+                 },0);
               }
             } else { 
               updatedSignalsList.push({ ...newSignalData, status: signalFromStorage.status || "Active (Local)" });
               if(isManualScan) toast({ title: "Local SOS Signal Found", description: `Tracking: ${signalFromStorage.name}` }); 
-              window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Detected new active local SOS for ${signalFromStorage.name}. Status: ${signalFromStorage.status || "Active (Local)"}` }));
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Detected new active local SOS for ${signalFromStorage.name}. Status: ${signalFromStorage.status || "Active (Local)"}` }));
+              },0);
             }
           } catch (e) {
             console.error("Error parsing signal from localStorage:", e);
             if (isManualScan) { setError("Could not read local SOS signal data."); toast({ title: "Local SOS Error", description: "Could not read local SOS data. It might be corrupted.", variant: "destructive" });}
-            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Error parsing local SOS data from localStorage.` }));
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Error parsing local SOS data from localStorage.` }));
+            },0);
           }
         } else { 
           const existingSignalIndex = updatedSignalsList.findIndex(s => s.id === localSignalId);
@@ -143,7 +151,9 @@ export function SOSScannerPanel({ detectedSignals, setDetectedSignals }: SOSScan
               updatedSignalsList[existingSignalIndex].rssi = -100;
               if (isManualScan || prevDetectedSignals[existingSignalIndex].status !== "Signal Lost (Local)") {
                 toast({ title: "Local SOS Signal Lost", description: `SOS for ${updatedSignalsList[existingSignalIndex].name} is no longer broadcasting.` });
-                window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Local SOS signal for ${updatedSignalsList[existingSignalIndex].name} is no longer active.` }));
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: `SOS Scanner: Local SOS signal for ${updatedSignalsList[existingSignalIndex].name} is no longer active.` }));
+                },0);
               }
             }
           }
