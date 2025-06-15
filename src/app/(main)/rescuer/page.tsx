@@ -6,7 +6,6 @@ import { SOSScannerPanel } from '@/components/rescuer/sos-scanner-panel';
 import { MapDisplayPanel } from '@/components/rescuer/map-display-panel';
 import { RescuerAdvicePanel } from '@/components/rescuer/rescuer-advice-panel';
 import { RescuerLogPanel } from '@/components/rescuer/rescuer-log-panel';
-// MassAlertPanel import removed
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -26,24 +25,32 @@ export default function RescuerPage() {
   const [detectedSignals, setDetectedSignals] = useState<DetectedSignal[]>([]);
   const router = useRouter();
   const { toast } = useToast();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Default to false
 
-
+  // Effect for authentication check and setting isAuthenticated state
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const authStatus = localStorage.getItem('isRescuerAuthenticated');
       if (authStatus !== 'true') {
         router.replace('/rescuer/login');
-        toast({ title: "Authentication Required", description: "Please log in to access the rescuer dashboard.", variant: "destructive"});
+        // No toast here; login page implies requirement.
       } else {
         setIsAuthenticated(true);
-        setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Dashboard: Authenticated and loaded." }));
-        }, 0);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, toast]); 
+  }, [router]); // Only router as dependency
+
+  // Effect for logging when authentication is confirmed
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Dispatch the log event after the current render cycle is complete
+      const timerId = setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Dashboard: Authenticated and loaded." }));
+      }, 0); 
+      return () => clearTimeout(timerId); // Cleanup timeout
+    }
+  }, [isAuthenticated]); // This effect runs when isAuthenticated changes
 
   const handleSignalsDetected = (signals: DetectedSignal[]) => {
     setDetectedSignals(signals);
@@ -52,19 +59,27 @@ export default function RescuerPage() {
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
         localStorage.removeItem('isRescuerAuthenticated');
+        setIsAuthenticated(false); // Update local state immediately
     }
     toast({ title: "Logged Out", description: "You have been successfully logged out." });
-    setTimeout(() => {
+    // Ensure this log also happens after state updates and router navigation might be initiated
+    setTimeout(() => { 
         window.dispatchEvent(new CustomEvent('newRescuerAppLog', { detail: "Rescuer Dashboard: Logged out." }));
     }, 0);
     router.replace('/'); 
   };
 
   if (!isAuthenticated) {
-    return <div className="flex justify-center items-center h-screen"><p>Loading...</p></div>;
+    // Show a loading state or minimal UI while checking auth / redirecting
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-7rem)] py-6">
+        {/* Removed Loader2 to simplify, text indicates status */}
+        <p className="text-muted-foreground">Verifying access...</p>
+      </div>
+    );
   }
 
-
+  // Main dashboard content, rendered only if isAuthenticated is true
   return (
     <div className="container mx-auto py-4 sm:py-6">
       <header className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
@@ -85,7 +100,6 @@ export default function RescuerPage() {
           <MapDisplayPanel signals={detectedSignals} />
         </div>
         <div className="lg:sticky lg:top-[calc(4rem+1.5rem)] space-y-4 sm:space-y-6">
-          {/* MassAlertPanel removed from here */}
           <RescuerAdvicePanel />
         </div>
       </div>
