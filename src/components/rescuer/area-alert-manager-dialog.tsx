@@ -26,6 +26,8 @@ import { format } from 'date-fns';
 
 const MASS_ALERT_DEFINITIONS_KEY = 'massAlertDefinitions';
 const DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES = 0.05; 
+const EARTH_RADIUS_KM = 6371;
+
 
 const massAlertSchema = z.object({
   lat: z.coerce.number().min(-90, "Invalid Latitude (must be between -90 and 90)").max(90, "Invalid Latitude (must be between -90 and 90)"),
@@ -92,12 +94,11 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       let bboxArray: [number, number, number, number];
 
       if (typeof radiusMeters === 'number' && radiusMeters > 0 && !isNaN(radiusMeters)) {
-        const earthRadiusKm = 6371;
         const latRadians = lat * (Math.PI / 180);
         const radiusKm = radiusMeters / 1000;
 
-        const latOffsetDegrees = (radiusKm / earthRadiusKm) * (180 / Math.PI);
-        const lonOffsetDegrees = (radiusKm / (earthRadiusKm * Math.cos(latRadians))) * (180 / Math.PI);
+        const latOffsetDegrees = (radiusKm / EARTH_RADIUS_KM) * (180 / Math.PI);
+        const lonOffsetDegrees = (radiusKm / (EARTH_RADIUS_KM * Math.cos(latRadians))) * (180 / Math.PI);
         
         const paddingFactor = 1.2; 
 
@@ -108,6 +109,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
           lat + latOffsetDegrees * paddingFactor,
         ];
       } else {
+        // Use a default bounding box if radius is not valid, centered on the coords
         bboxArray = [
           lon - DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
           lat - DEFAULT_MAP_ZOOM_BOX_SIZE_DEGREES / 2,
@@ -119,6 +121,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
       const bbox = bboxArray.map(coord => parseFloat(coord.toFixed(5))).join(',');
       setMapUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`);
     } else {
+      // Default world view if no valid coordinates
       setMapUrl('https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik');
     }
   }, [watchedLat, watchedLon, watchedRadius]);
@@ -244,7 +247,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
         <DialogFooter className="p-4 sticky bottom-0 flex flex-row items-center justify-end space-x-2">
           <DialogClose asChild>
-            <Button type="button" variant="outline" size="sm">Close</Button>
+            <h2 className="text-base font-medium cursor-pointer p-2 hover:bg-accent hover:text-accent-foreground rounded-md">Close</h2>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
@@ -260,4 +263,5 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
 
     
+
 
