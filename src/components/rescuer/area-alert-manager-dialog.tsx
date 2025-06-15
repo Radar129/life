@@ -242,7 +242,7 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
            )}
         </div>
 
-        <DialogFooter className="p-4 border-t bg-background sticky bottom-0 flex flex-row items-center justify-end space-x-2">
+        <DialogFooter className="p-4 sticky bottom-0 flex flex-row items-center justify-end space-x-2">
           <DialogClose asChild>
             <Button type="button" variant="outline" size="sm">Close</Button>
           </DialogClose>
@@ -260,3 +260,4 @@ export function AreaAlertManagerDialog({ isOpen, onOpenChange }: AreaAlertManage
 
 
     
+
