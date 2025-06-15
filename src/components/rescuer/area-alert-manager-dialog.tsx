@@ -38,7 +38,7 @@ interface NominatimSuggestion {
 }
 
 const massAlertSchema = z.object({
-  adminRegionName: z.string().max(100, "Region name too long (max 100 characters).").optional(),
+  adminRegionName: z.string().optional(),
   lat: z.coerce.number().min(-90, "Invalid Latitude (must be between -90 and 90)").max(90, "Invalid Latitude (must be between -90 and 90)"),
   lon: z.coerce.number().min(-180, "Invalid Longitude (must be between -180 and 180)").max(180, "Invalid Longitude (must be between -180 and 180)"),
   radius: z.coerce.number().min(1, "Radius must be at least 1 meter.").max(50000, "Radius cannot exceed 50km (50,000m)."),
